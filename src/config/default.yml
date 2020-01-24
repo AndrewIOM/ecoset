@@ -18,10 +18,13 @@ variables:
     - sea_depth:
         name: "Coastal Habitats"
         description: "A global map of sea depth in metres."
+        unit: metres below sea level
         methods:
             - default:
                 name: "Default"
                 description: "Data source: US Government"
+                license: GPLv2
+                licenseUrl: https://opensource.org/licenses/GPL-3.0
                 implementation: IntersectTiffs
                 options:
                     tiledir: /mnt/c/Users/EcosetDev/Desktop/test-ecoset-data/coastalecosystems
@@ -30,10 +33,13 @@ variables:
     - marine_ecoregions:
         name: "Marine Ecoregions"
         description: "Marine ecoregions are ecoregions (ecological regions) of the oceans and seas identified and defined based on biogeographic characteristics."
+        unit: ecoregion
         methods:
             - default:
                 name: "Default"
                 description: "Data source: WWF"
+                license: GPLv2
+                licenseUrl: https://opensource.org/licenses/GPL-3.0
                 implementation: IntersectTiffs
                 options:
                     tiledir: /mnt/c/Users/EcosetDev/Desktop/test-ecoset-data/coastalecosystems

@@ -2,6 +2,7 @@ import { Body, Controller, Get, Header, Path, Post, Query, Route, SuccessRespons
 import { JobState, EcosetJobRequest } from '../types';
 import { redisStateCache } from '../state-cache';
 import { queue } from '../queue';
+import { listVariables } from '../registry';
 
 const stateCache = redisStateCache.create();
 
@@ -10,13 +11,18 @@ export class DataPackageController extends Controller {
 		
 		@Get('status/{analysisId}')
 		public async status(@Path('analysisId') analysisId: number): Promise<JobState> {
-				return await redisStateCache.getState(stateCache, analysisId);
+			return await redisStateCache.getState(stateCache, analysisId);
 		}
 
 		@Post('submit')
 		public async submit(@Body() jobRequest: EcosetJobRequest) {
-				let r = await queue.add(jobRequest);
-				return r.id;
+			let r = await queue.add(jobRequest);
+			return r.id;
+		}
+
+		@Get('list')
+		public async list() {
+			return listVariables();
 		}
 
 }

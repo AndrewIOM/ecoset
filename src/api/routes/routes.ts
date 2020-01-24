@@ -71,6 +71,42 @@ const models: TsoaRoute.Models = {
         "additionalProperties": true,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "SlicedTime": {
+        "dataType": "refObject",
+        "properties": {
+            "kind": { "dataType": "enum", "enums": ["timeSlice"], "required": true },
+            "slices": { "dataType": "array", "array": { "dataType": "refAlias", "ref": "SimpleDate" }, "required": true },
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ContinuousTime": {
+        "dataType": "refObject",
+        "properties": {
+            "kind": { "dataType": "enum", "enums": ["timeExtent"], "required": true },
+            "minDate": { "ref": "SimpleDate", "required": true },
+            "maxDate": { "ref": "SimpleDate", "required": true },
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "TemporalDimension": {
+        "dataType": "refAlias",
+        "type": { "dataType": "union", "subSchemas": [{ "ref": "SlicedTime" }, { "ref": "ContinuousTime" }], "validators": {} },
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "PointWGS84": {
+        "dataType": "refAlias",
+        "type": { "dataType": "nestedObjectLiteral", "nestedProperties": { "Longitude": { "dataType": "double", "required": true }, "Latitude": { "dataType": "double", "required": true } }, "validators": {} },
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "IVariableMethod": {
+        "dataType": "refObject",
+        "properties": {
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 };
 const validationService = new ValidationService(models);
 
@@ -122,6 +158,27 @@ export function RegisterRoutes(app: express.Express) {
 
 
             const promise = controller.submit.apply(controller, validatedArgs as any);
+            promiseHandler(controller, promise, response, next);
+        });
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    app.get('/api/v1/Data/list',
+        function(request: any, response: any, next: any) {
+            const args = {
+            };
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = getValidatedArgs(args, request);
+            } catch (err) {
+                return next(err);
+            }
+
+            const controller = new DataPackageController();
+
+
+            const promise = controller.list.apply(controller, validatedArgs as any);
             promiseHandler(controller, promise, response, next);
         });
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa

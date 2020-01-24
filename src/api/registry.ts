@@ -11,6 +11,8 @@ type MethodListItem = {
     FriendlyName: string
     Description: string
     Implementation: string
+    License: string
+    LicenseUrl: string
     Options: any
 }
 
@@ -18,6 +20,7 @@ type VariableListItem = {
     Id: string
     FriendlyName: string
     Description: string
+    Unit: string
     Methods: MethodListItem[]
 }
 
@@ -30,13 +33,15 @@ let parseVariableConfiguration =
             let methods =
                 v.methods.map((m:any) => {
                     let keys = Object.keys(m);
-                    let name = keys[0]
-                    let v = m[name]
+                    let name = keys[0];
+                    let v = m[name];
                     return {
                         Id: name,
                         FriendlyName: v.name,
                         Description: v.description,
                         Implementation: v.implementation,
+                        License: v.license,
+                        LicenseUrl: v.licenseUrl,
                         Options: v.options
                     }
                 })
@@ -44,6 +49,7 @@ let parseVariableConfiguration =
                 Id: name,
                 FriendlyName: v.name,
                 Description: v.description,
+                Unit: v.Unit,
                 Methods: methods
             }
         });
@@ -65,6 +71,8 @@ const variablesWithDimensions = (variables:VariableListItem[]) => {
                 return {
                     Id: m.Id,
                     Name: m.FriendlyName,
+                    License: m.License,
+                    LicenseUrl: m.LicenseUrl,
                     Time: method.temporalDimension(),
                     Space: method.spatialDimension(),
                     Imp: method
@@ -74,6 +82,7 @@ const variablesWithDimensions = (variables:VariableListItem[]) => {
             Id: v.Id,
             Name: v.FriendlyName,
             Description: v.Description,
+            Unit: v.Unit,
             Methods: methods
         }
     });
