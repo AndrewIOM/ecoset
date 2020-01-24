@@ -1,4 +1,5 @@
 import fs from 'fs';
+import readline from 'readline';
 import winston = require("winston");
 import { EcosetJobRequest, Time, PointWGS84 } from "./types";
 import { listVariables } from "./registry";
@@ -57,22 +58,40 @@ export async function processJob(job:EcosetJobRequest, jobId:string|number) {
     const finalOutputFile = cacheDir + "/output.json";
     fs.writeFileSync(finalOutputFile, "{\"north\": " + job.LatitudeNorth + ",\"south\":" + job.LatitudeSouth + ",\"east\":" + job.LongitudeEast + ",\"west\":" + job.LongitudeWest + ",\"output\":[");
     
-    variablesToRun.map(v => {
-        const fileTemplate = cacheDir + "/" + v.Name + "_" + v.Method;
+    for (let index = 0; index < variablesToRun.length; index++) {
 
-        if (!fs.existsSync(fileTemplate)) {
-            winston.warn("No data in result: " + v.Name + "; method: " + v.Method);
+    // variablesToRun.map(async v => {
+        const variableResult = cacheDir + "/" + variablesToRun[index].Name + "_" + variablesToRun[index].Method.Id + "_output.json";
+        console.log("File is: " + variableResult);
+        if (!fs.existsSync(variableResult)) {
+            console.log("file doesn't exist");
+            winston.warn("No data in result: " + variablesToRun[index].Name + "; method: " + variablesToRun[index].Method.Id);
             return;
         }
-
-        winston.info("Synthesising results: " + v.Name + " - " + v.Method);
-        fs.appendFileSync(finalOutputFile, "{ \"name\":\"" 
-            + v.Name + "\",\"implementation\":\"" + v.Method
-            + "\",\"output_format\":\"" + "UNKNOWN" + "\",\"stat\":\"" 
+        winston.info("Synthesising results: " + variablesToRun[index].Name + " - " + variablesToRun[index].Method.Id);
+        fs.appendFileSync(finalOutputFile, "{ \"name\":\""
+            + variablesToRun[index].Name + "\",\"implementation\":\"" + variablesToRun[index].Method.Id
+            + "\",\"output_format\":\"" + "UNKNOWN" + "\",\"stat\":\""
             + "UNKNOWN" + "\",\"data\":");
-        
 
-    })
+        const fileReader = readline.createInterface( {input: fs.createReadStream(variableResult) });
+
+        const writeData = () => {
+            return new Promise(resolve => {
+                fileReader.on('line', function(line) {
+                    fs.appendFileSync(finalOutputFile, line);
+                }).on("close", () => {
+                    return resolve();
+                });
+            });
+        }
+        await writeData();
+        if (index < variablesToRun.length - 1) {
+            fs.appendFileSync(finalOutputFile, "},");
+        } else {
+            fs.appendFileSync(finalOutputFile, "}]}");
+        }
+    }
 
     return results;
 }

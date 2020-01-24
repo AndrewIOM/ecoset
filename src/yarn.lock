@@ -150,6 +150,11 @@ async@^2.6.1:
   dependencies:
     lodash "^4.17.14"
 
+async@~0.2.6:
+  version "0.2.10"
+  resolved "https://registry.yarnpkg.com/async/-/async-0.2.10.tgz#b6bbe0b0674b9d719708ca38de8c237cb526c3d1"
+  integrity sha1-trvgsGdLnXGXCMo43owjfLUmw9E=
+
 balanced-match@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-1.0.0.tgz#89b4d199ab2bee49de164ea02b89ce462d71b767"
@@ -307,22 +312,17 @@ colorspace@1.1.x:
     color "3.0.x"
     text-hex "1.0.x"
 
-commander@^2.9.0:
-  version "2.20.3"
-  resolved "https://registry.yarnpkg.com/commander/-/commander-2.20.3.tgz#fd485e84c03eb4881c20722ba48035e8531aeb33"
-  integrity sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==
+concat-files@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/concat-files/-/concat-files-0.1.1.tgz#7016ae60278ba3f6b0b561368fa211160e556db5"
+  integrity sha1-cBauYCeLo/awtWE2j6IRFg5VbbU=
+  dependencies:
+    async "~0.2.6"
 
 concat-map@0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/concat-map/-/concat-map-0.0.1.tgz#d8a96bd77fd68df7793a73036a3ba0d5405d477b"
   integrity sha1-2Klr13/Wjfd5OnMDajug1UBdR3s=
-
-concat@^1.0.3:
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/concat/-/concat-1.0.3.tgz#40f3353089d65467695cb1886b45edd637d8cca8"
-  integrity sha1-QPM1MInWVGdpXLGIa0Xt1jfYzKg=
-  dependencies:
-    commander "^2.9.0"
 
 config@^3.2.5:
   version "3.2.5"

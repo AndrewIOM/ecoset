@@ -251,13 +251,12 @@ export async function run(
     // Write output with placeholder
     // NB Remove end of json object to insert data
     let outputJsonString = JSON.stringify(outputJson);
-    outputJsonString
-    fs.writeFileSync(outputFileTemplate + '_output.json', outputJsonString.substring(0,outputJsonString.length - 5));
+    fs.writeFileSync(outputFileTemplate + '_output.json', outputJsonString.substring(0,outputJsonString.length - 3));
+    fs.appendFileSync(outputFileTemplate + '_output.json', "{");
     
     // Replace placeholder with actual data
     const file = readline.createInterface({
-        input: fs.createReadStream(outputFileTemplate + '.asc'),
-        output: fs.createWriteStream(outputFileTemplate + '_output.json'),
+        input: fs.createReadStream(outputFileTemplate + '.asc')
     });
 
     // Processing line-by-line
@@ -273,19 +272,19 @@ export async function run(
             file.on('line', function(line) {
                 const lineSplit = line.split(' ');
                 if (lineSplit[0] == 'ncols') {
-                    fs.appendFileSync(outputFileTemplate + "_output.json", 'ncols":' + lineSplit.pop() + ',');
+                    fs.appendFileSync(outputFileTemplate + "_output.json", '"ncols":' + lineSplit.pop() + ',');
                 } else if (lineSplit[0] == 'nrows') {
                     let popped = lineSplit.pop();
                     if (popped !== undefined) {
                         nRows = +popped;
-                        fs.appendFileSync(outputFileTemplate + "_output.json", 'nrows":' + nRows.toString() + ',');
+                        fs.appendFileSync(outputFileTemplate + "_output.json", '"nrows":' + nRows.toString() + ',');
                     }
                 } else if (lineSplit[0] == 'NODATA_value') {
-                    fs.appendFileSync(outputFileTemplate + "_output.json", 'nodata":' + lineSplit.pop() + ',\n"raw":[');
+                    fs.appendFileSync(outputFileTemplate + "_output.json", '"nodata":' + lineSplit.pop() + ',\n"raw":[');
                 } else if (!isNaN(Number(lineSplit[0]))) {
                     if (startLine == -1) startLine = lineCount;
         
-                    var lineData = (line.substr(1)).split(' ');
+                    let lineData = (line.substr(1)).split(' ');
                     for (var i = 0; i < lineData.length; i++) {
                         lineData[i] = (Math.round(scale * Number(lineData[i]) + offset)).toString();
                     }
