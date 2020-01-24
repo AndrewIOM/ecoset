@@ -1,0 +1,40 @@
+api:
+    port: 5002
+
+queue:
+    maxjobs: 3
+    maxduration: 43200000
+
+cache:
+    host: "localhost"
+    port: 6379
+
+locations:
+    tileroot: &tileroot "c:/sometiledir"
+    cache: /mnt/c/Users/EcosetDev/Desktop/test-ecoset-cache
+
+variables:
+
+    - sea_depth:
+        name: "Coastal Habitats"
+        description: "A global map of sea depth in metres."
+        methods:
+            - default:
+                name: "Default"
+                description: "Data source: US Government"
+                implementation: IntersectTiffs
+                options:
+                    tiledir: /mnt/c/Users/EcosetDev/Desktop/test-ecoset-data/coastalecosystems
+                    nodata: -9999
+    
+    - marine_ecoregions:
+        name: "Marine Ecoregions"
+        description: "Marine ecoregions are ecoregions (ecological regions) of the oceans and seas identified and defined based on biogeographic characteristics."
+        methods:
+            - default:
+                name: "Default"
+                description: "Data source: WWF"
+                implementation: IntersectTiffs
+                options:
+                    tiledir: /mnt/c/Users/EcosetDev/Desktop/test-ecoset-data/coastalecosystems
+                    nodata: -9999
