@@ -22,8 +22,8 @@ export type PointWGS84 = {
 
 export type SimpleDate = {
     Year: number,
-    Month: number | null,
-    Day: number | null
+    Month?: number,
+    Day?: number
 }
 
 export interface TimeBefore {
@@ -129,7 +129,7 @@ type Variable = {
 }
 
 // An API request DTO
-export type EcosetJobRequest = {
+export interface EcosetJobRequest {
     LatitudeNorth: number
     LatitudeSouth: number
     LongitudeWest: number

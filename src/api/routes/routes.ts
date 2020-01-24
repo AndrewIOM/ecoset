@@ -14,9 +14,59 @@ const models: TsoaRoute.Models = {
         "enums": ["NonExistent", "Queued", "Processing", "Ready", "Failed"],
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Latest": {
+        "dataType": "refObject",
+        "properties": {
+            "kind": { "dataType": "enum", "enums": ["latest"], "required": true },
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "SimpleDate": {
+        "dataType": "refAlias",
+        "type": { "dataType": "nestedObjectLiteral", "nestedProperties": { "Day": { "dataType": "double" }, "Month": { "dataType": "double" }, "Year": { "dataType": "double", "required": true } }, "validators": {} },
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "TimeExact": {
+        "dataType": "refObject",
+        "properties": {
+            "kind": { "dataType": "enum", "enums": ["exact"], "required": true },
+            "date": { "ref": "SimpleDate", "required": true },
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "TimeBefore": {
+        "dataType": "refObject",
+        "properties": {
+            "kind": { "dataType": "enum", "enums": ["before"], "required": true },
+            "date": { "ref": "SimpleDate", "required": true },
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Time": {
+        "dataType": "refAlias",
+        "type": { "dataType": "union", "subSchemas": [{ "ref": "Latest" }, { "ref": "TimeExact" }, { "ref": "TimeBefore" }], "validators": {} },
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Variable": {
+        "dataType": "refAlias",
+        "type": { "dataType": "nestedObjectLiteral", "nestedProperties": { "Method": { "dataType": "string", "required": true }, "Name": { "dataType": "string", "required": true } }, "validators": {} },
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "EcosetJobRequest": {
         "dataType": "refObject",
         "properties": {
+            "LatitudeNorth": { "dataType": "double", "required": true },
+            "LatitudeSouth": { "dataType": "double", "required": true },
+            "LongitudeWest": { "dataType": "double", "required": true },
+            "LongitudeEast": { "dataType": "double", "required": true },
+            "TimeMode": { "ref": "Time", "required": true },
+            "Year": { "dataType": "double", "required": true },
+            "Month": { "dataType": "double", "required": true },
+            "Day": { "dataType": "double", "required": true },
+            "Executables": { "dataType": "array", "array": { "dataType": "refAlias", "ref": "Variable" }, "required": true },
         },
         "additionalProperties": true,
     },

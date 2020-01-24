@@ -55,14 +55,14 @@ const timeSlices = (tileDir:string) => {
             yr = Number(parts[0]);
         } else return;
         if (parts.length == 1) {
-            timeSlices.set({ Year: yr, Month: null, Day: null }, tileDir+'/'+subdir);
+            timeSlices.set({ Year: yr }, tileDir+'/'+subdir);
         }
         if (!isNaN(Number(parts[1]))) {
             if (Number(parts[1]) > 0 && Number(parts[1]) < 13) { m = Number(parts[1]); }
             else return;
         } else return;
         if (parts.length == 2) {
-            timeSlices.set({ Year: yr, Month: m, Day: null }, tileDir+'/'+subdir);
+            timeSlices.set({ Year: yr, Month: m }, tileDir+'/'+subdir);
         }
         if (!isNaN(Number(parts[2]))) {
             d = Number(parts[2]);

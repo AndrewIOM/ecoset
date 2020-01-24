@@ -1856,10 +1856,10 @@ tsconfig@^7.0.0:
     strip-bom "^3.0.0"
     strip-json-comments "^2.0.0"
 
-tsoa@^2.5.13:
-  version "2.5.13"
-  resolved "https://registry.yarnpkg.com/tsoa/-/tsoa-2.5.13.tgz#d76b4637fa3786833fdbb0b72ff0e7cd99131abd"
-  integrity sha512-JDptbzaES7vyIX1QnV8L0RZGbaQ2GunhoDfVbl3O3OOYP3j031jhYGguyL+jgJrH5rU98+v+KQlfKHG5bUUb9g==
+tsoa@^3.0.1:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/tsoa/-/tsoa-3.0.1.tgz#dcfaa6b9f97f66bcf1a14a5ace918bd3dbc930e5"
+  integrity sha512-gtSOu7MBjgmDhq2KypubQKY9hGe+lhe3WvTKlkO6RWmh8nSp6ziw1SgbbWYDT7a4JgetnQ0aq+XpnsiM72bzyw==
   dependencies:
     fs-extra "^8.1.0"
     handlebars "^4.5.3"
