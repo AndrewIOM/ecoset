@@ -24,13 +24,13 @@ const siteConfig = {
   title: 'Ecoset', // Title for your website.
   tagline: 'A simple and extensible geotemporal data engine',
   url: 'https://andrewiom.github.io', // Your website URL
-  baseUrl: '/ecoset/', // Base URL for your project */
+  baseUrl: '/ecoset-vnext/', // Base URL for your project */
   // For github.io type URLs, you would set the url and baseUrl like:
   //   url: 'https://facebook.github.io',
   //   baseUrl: '/test-site/',
 
   // Used for publishing and more
-  projectName: 'ecoset',
+  projectName: 'ecoset-vnext',
   organizationName: 'andrewiom',
   // For top-level user or org sites, the organization is still the same.
   // e.g., for the https://JoelMarcey.github.io site, it would be set like...
