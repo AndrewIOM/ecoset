@@ -4,8 +4,7 @@
   "description": "",
   "author": "Andrew Martin",
   "contributors": [
-    "Phillip Holland",
-    "Andrew Martin"
+    "Phillip Holland"
   ],
   "scripts": {
     "dev": "ts-node-dev --respawn --transpileOnly ./api/app.ts",
@@ -14,9 +13,12 @@
     "tsoa:gen": "tsoa swagger && tsoa routes"
   },
   "dependencies": {
+    "@turf/turf": "^5.1.6",
     "@types/bull": "^3.12.0",
     "@types/bull-board": "^0.6.0",
+    "@types/event-stream": "^3.3.34",
     "@types/express": "^4.17.2",
+    "@types/jsonstream": "^0.8.30",
     "@types/redis": "^2.8.14",
     "@types/swagger-ui-express": "^4.1.1",
     "body-parser": "^1.19.0",
@@ -24,8 +26,10 @@
     "bull-board": "^0.6.0",
     "concat-files": "^0.1.1",
     "config": "^3.2.5",
+    "event-stream": "^4.0.1",
     "express": "^4.17.1",
     "js-yaml": "^3.13.1",
+    "jsonstream": "^1.0.3",
     "redis": "^2.8.0",
     "reflect-metadata": "^0.1.13",
     "sqlite3": "^4.1.1",

@@ -9,6 +9,12 @@ cache:
     host: "localhost"
     port: 6379
 
+gbifdb:
+    host: localhost
+    username: test
+    password: test
+    database: gbif
+
 locations:
     tileroot: &tileroot "c:/sometiledir"
     cache: /mnt/c/Users/EcosetDev/Desktop/test-ecoset-cache
@@ -27,9 +33,9 @@ variables:
                 licenseUrl: https://opensource.org/licenses/GPL-3.0
                 implementation: IntersectTiffs
                 options:
-                    tiledir: /mnt/c/Users/EcosetDev/Desktop/test-ecoset-data/coastalecosystems
+                    tiledir: /Users/andrewmartin/Desktop/ecoset/datasets/sample-data/exclusiveeconomiczones
                     nodata: -9999
-    
+
     - marine_ecoregions:
         name: "Marine Ecoregions"
         description: "Marine ecoregions are ecoregions (ecological regions) of the oceans and seas identified and defined based on biogeographic characteristics."
@@ -42,5 +48,38 @@ variables:
                 licenseUrl: https://opensource.org/licenses/GPL-3.0
                 implementation: IntersectTiffs
                 options:
-                    tiledir: /mnt/c/Users/EcosetDev/Desktop/test-ecoset-data/coastalecosystems
+                    tiledir: /Users/andrewmartin/Desktop/ecoset/datasets/sample-data/marineecoregions
                     nodata: -9999
+
+    - sev:
+        name: "Summary Ecological Value"
+        description: "Summarises ecological value within a landscape based on five values"
+        unit: unitless
+        methods:
+            - default:
+                name: "Default"
+                description: "Uses five metrics"
+                license: GPLv2
+                licenseUrl: https://opensource.org/licenses/GPL-3.0
+                implementation: SpatialSummary
+                depends_on:
+                    - marine_ecoregions
+                    - sea_depth
+                options:
+                    equation: ((marine_ecoregions * 1.0) + (sea_depth * 0.5)) / 2.0
+
+    - migratory:
+        name: "Migratory Species"
+        description: "Species with migration pathways"
+        unit: species names
+        methods:
+            - default:
+                name: "GROMS"
+                description: "GROMS database"
+                license: GPLv2
+                licenseUrl: https://opensource.org/licenses/GPL-3.0
+                implementation: IntersectShape
+                options:
+                    shapedir: /Users/andrewmartin/Desktop/ecoset/datasets/sample-data/groms
+
+    

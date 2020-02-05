@@ -38,7 +38,7 @@ class IntersectTiffsVariableMethod {
     availableForSpace() { return true; }
 
     computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) : Promise<Result<void, string>> {
-        return run(space, time, this.config.TileDir, this.config.NoDataValue, outputDir, options);
+        return run(space, time, this.config.TileDir, this.config.NoDataValue, outputDir, options.buffer, options.resolution);
     }
 }
 

@@ -3,6 +3,7 @@ import readline from 'readline';
 import winston, { stream } from 'winston';
 import { runCommand } from './run-command';
 import { SimpleDate, PointWGS84, Time, Result } from "./../../api/types";
+import { timeSlices, temporalMatch } from './time-slices';
 
 type TwoWayMap<A,B> = {
     Forward: (arg:A) => (B | undefined),
@@ -31,50 +32,6 @@ const tileLookupTable : () => TwoWayMap<string,string> = () => {
     };
 }
 
-const listSubDirectories = (path:string) => {
-    return fs.readdirSync(path).filter(file => {
-        return fs.statSync(path + "/" + file).isDirectory()
-    });
-}
-
-const isValidDate = (year:number, month:number, day:number) => {
-    const tempDate = new Date(year, --month, day);
-    return month === tempDate.getMonth();   
-}
-
-// Parses subdirectories as time slices based on format YYYY-MM-DD
-const timeSlices = (tileDir:string) => {
-    const timeSlices = new Map<SimpleDate,string>();
-    const tileDirectories = listSubDirectories(tileDir);
-    tileDirectories.forEach(subdir => {
-        console.log("Subdir is " + subdir);
-        let yr:number, m:number, d:number;
-        const parts = subdir.split('-');
-        if (parts.length > 3) return;
-        if (!isNaN(Number(parts[0]))) {
-            yr = Number(parts[0]);
-        } else return;
-        if (parts.length == 1) {
-            timeSlices.set({ Year: yr }, tileDir+'/'+subdir);
-        }
-        if (!isNaN(Number(parts[1]))) {
-            if (Number(parts[1]) > 0 && Number(parts[1]) < 13) { m = Number(parts[1]); }
-            else return;
-        } else return;
-        if (parts.length == 2) {
-            timeSlices.set({ Year: yr, Month: m }, tileDir+'/'+subdir);
-        }
-        if (!isNaN(Number(parts[2]))) {
-            d = Number(parts[2]);
-            if (isValidDate(yr,m,d)) {
-                timeSlices.set({ Year: yr, Month: m, Day: d }, tileDir+'/'+subdir);
-            } 
-        }
-    });
-    winston.debug("Time slices: " + JSON.stringify(timeSlices));
-    return timeSlices;
-}
-
 type Bounds = {
     LatMin: number,
     LatMax: number,
@@ -101,32 +58,6 @@ const tilesInBounds = (tileLookup:TwoWayMap<string,string>,bounds:Bounds) => {
         }
     }
     return tiles;
-}
-
-// TODO logic for getting nearest date?
-const temporalMatch = (slices:Map<SimpleDate, string>,t: Time) => {
-    switch (t.kind) {
-        case "exact": return {Date: t.date, Slice: slices.get(t.date) };
-        case "latest": 
-            const latest =
-                Array.from(slices.keys())
-                //.sort((a, b) => a.Month - b.Month)
-                .sort((a, b) => a.Year - b.Year).pop();
-            if (latest != null) {
-                return { Date: latest, Slice: slices.get(latest) };
-            } else return undefined;
-        case "before": 
-            const before = 
-                Array.from(slices.keys())
-                .filter(x => x.Year <= t.date.Year)
-                // .filter(x.Month <= t.date.Month && x.Day <= t.date.Day) // TODO Check nulls
-                // .sort((a, b) => a.Day - b.Day)
-                // .sort((a, b) => a.Month - b.Month)
-                .sort((a, b) => a.Year - b.Year).pop();
-            if (before != null) {
-                return {Date: before, Slice: slices.get(before) };
-            } else return undefined;
-    }
 }
 
 type Statistic = {
@@ -191,7 +122,8 @@ export async function run(
     tiledir:string, 
     noDataValue:number,
     outputFileTemplate: string,
-    buffer:number ) : Promise<Result<void,string>> {
+    buffer?:number,
+    resolution?:number ) : Promise<Result<void,string>> {
 
     const requestBounds = {
         LatMin: Math.min(... space.map(s => s.Latitude)),
@@ -211,7 +143,7 @@ export async function run(
         return { kind: "failure", message: "There were no time slices that met the criteria" };
     }
 
-    const bufferedBounds = bufferBounds(requestBounds, buffer);
+    const bufferedBounds = bufferBounds(requestBounds, buffer == undefined ? 0 : buffer);
     const tileLookup = tileLookupTable();
     const overlappingTiles = tilesInBounds(tileLookup, bufferedBounds);
     const overlappingTileFiles = getTileFiles(overlappingTiles, timeSlice.Slice);
@@ -228,6 +160,8 @@ export async function run(
     // Translate?
     commandOpts = ['-of', 'AAIGrid', outputFileTemplate + '.tif', outputFileTemplate + '.asc'];
     const output = await runCommand('gdal_translate', commandOpts, true, false);
+
+    // TODO Resolution
 
     // Interpret output
     const outputInfo = await runCommand("gdalinfo", ['-json', '-stats', outputFileTemplate + '.tif'], true, false);
