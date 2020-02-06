@@ -85,20 +85,24 @@ const cutShapefile = async (space:PointWGS84[], time:Time, shapefileDir:string, 
 
     // 3. Convert shapefile to geojson and select overlapping points
     const temporaryFile = outputFileTemplate + "_temp.json";
-    let wktPolygon = "POLYGON ((" + (space.map(s => s.Latitude.toString() + " " + s.Longitude.toString() + ", "));
-    wktPolygon = wktPolygon.substr(0, wktPolygon.length - 2) + " ))";
-    let commandOpts = ["-clipsrc", wktPolygon, temporaryFile, shapefile, "-f", "GeoJSON"];
-    const output = await runCommand("ogr2ogr", commandOpts, true, false);
-    // TODO handle errors in ogr?
+    const wktPolygon = "POLYGON ((" + (space.map(s => s.Latitude.toString() + " " + s.Longitude.toString()).join()) + "))";
+    let commandOpts = ["-clipsrc", wktPolygon, temporaryFile, timeSlice.Slice + "/" + shapefile, "-f", "GeoJSON"];
+    const output = await runCommand("ogr2ogr", commandOpts, false, false);
+
+    if (!fs.existsSync(temporaryFile)) {
+        winston.warn("ogr2ogr did not output anything.");
+        return { kind: "failure", message: "Shape intersection did not complete successfully." };
+    }
 
     // 4. Filter json to only desired properties
     const outputFile = outputFileTemplate + "_output.json";
-    const jsonStream = JSONstream.stringify();
+    const outputStream = fs.createWriteStream(outputFile)
+
     fs.appendFileSync(outputFile, "[");
     fs.createReadStream(temporaryFile)
-        .pipe(JSONstream.parse("features.properties"))
-        .pipe(es.mapSync((data:any) => { jsonStream.write(data); }))
-        .pipe(fs.createWriteStream(outputFile));
+        .pipe(JSONstream.parse(['features', true, 'properties']))
+        .pipe(JSONstream.stringify())
+        .pipe(outputStream);
 
     // Remove temporary files
     try { fs.unlinkSync(temporaryFile) } catch (e) {}
