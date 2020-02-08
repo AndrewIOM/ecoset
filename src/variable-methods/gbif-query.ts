@@ -1,4 +1,4 @@
-import { IVariableMethod, PointWGS84, Result } from "./../api/types"
+import { IVariableMethod, PointWGS84, Result, Time, TemporalDimension } from "./../api/types"
 import {Index, Entity, Column, PrimaryGeneratedColumn, getConnectionManager, createQueryBuilder, getRepository} from "typeorm";
 import config from "config";
 
@@ -13,9 +13,10 @@ class GbifQueryVariableMethod {
         return count(space);
      }
 
-    spatialDimension() { }
+    spatialDimension() { return []; }
 
-    temporalDimension() { }
+    temporalDimension() : TemporalDimension { 
+        return { kind: "timeExtent", minDate: { Year: 1980 }, maxDate: { Year: 2020 }}; }
 
     availableForDate() { return true; }
 
@@ -120,7 +121,9 @@ const connection = connectionManager.create({
     database: config.get("gbifdb.database"),
 });
 
-const count = async (space:PointWGS84[]) => {
+import turf from '@turf/turf';
+
+const count = async (space:PointWGS84[]) : Promise<Result<void,string>> => {
 
     // 1. Make a connection
     let conn = await connection.connect();//.catch(e => {
@@ -128,16 +131,30 @@ const count = async (space:PointWGS84[]) => {
     //     return { kind: "error", message: "Could not connect to GBIF database" }
     // });
 
-    const buffer = 3; // Three degrees buffer added to query.
-
-    // How to buffer random polygon?
-
-    const count = await getRepository(GbifRecord)
-        .createQueryBuilder("record")
-        .leftJoinAndSelect()
+    const buffer = 3;
+    const poly = turf.polygon([space.map(s => [s.Latitude, s.Longitude])]);
+    const bufferedPoly = turf.buffer(poly, buffer);
 
     
 
-    return { kind: "ok", result: 2 };
+    // const query = `select count(*) as count \
+    // from ${config.get("gbif_list.gbif_table")} m \
+    // left join ${config.get("gbif_list.gbif_coord_table")} c \
+    // on m.gbif_gbifid=c.gbif_gbifid \
+    // where gbif_species<>'' and \
+    // mbrcontains(ST_GeomFromText(CONCAT('LINESTRING(', ?, ' ', ?, ',', ?, ' ', ?, ')')), coordinate); \
+    // `, [bufferedSouth, bufferedWest, bufferedNorth, bufferedEast]
+
+
+    const count = await conn
+        .getRepository(GbifRecord)
+        .createQueryBuilder("record")
+        .leftJoinAndSelect("record.gbif_gbifid", "gbif_gbifid")
+        .where("record.gbif_species <> :name", { name: "" })
+        .where('')
+        // .leftJoinAndSelect("")
+        .getMany();
+
+    return { kind: "ok", result: undefined };
 
 }

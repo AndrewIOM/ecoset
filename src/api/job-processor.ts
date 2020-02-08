@@ -1,8 +1,8 @@
 import fs from 'fs';
 import readline from 'readline';
 import winston = require("winston");
-import { EcosetJobRequest, Time, PointWGS84 } from "./types";
-import { listVariables } from "./registry";
+import { EcosetJobRequest, Time, PointWGS84, TemporalDimension, IVariableMethod, Result } from "./types";
+import { listVariables, getDependencies } from "./registry";
 import { tryEstablishCache } from "./output-cache";
 
 const variables = listVariables();
@@ -11,13 +11,45 @@ function notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
     return value !== null && value !== undefined;
 }
 
-export async function processJob(job:EcosetJobRequest, jobId:string|number) {
+type VariableToRun = {
+    Name: string
+    Method: {
+        Id: string;
+        Name: string;
+        License: string;
+        LicenseUrl: string;
+        Time: TemporalDimension;
+        Space: PointWGS84[];
+        Imp: IVariableMethod;
+    }
+}
+
+type Node = {
+    Variable: VariableToRun,
+    Dependencies: Node[]
+}
+
+// Returns a jagged array of the running heirarchy of a particular plugin.
+const getNodeTree = (variable:VariableToRun, variablesToRun:VariableToRun[]) : Node => {
+    const dependencies = getDependencies(variable.Name, variable.Method.Id);
+    if (dependencies.length > 0) {
+        const d =
+            dependencies
+            .map(d => variablesToRun.find(v => v.Name == d))
+            .filter(notEmpty)
+            .map(d => getNodeTree(d, variablesToRun));
+        return { Variable: variable, Dependencies: d };
+    }
+    return { Variable: variable, Dependencies: []};
+}
+
+export async function processJob(job:EcosetJobRequest, jobId:string|number) : Promise<Result<void,string>> {
 
     winston.info("Starting processing of analysis: " + JSON.stringify(job));
     
     const cacheDir = tryEstablishCache(jobId.toString());
     if (cacheDir == null) {
-        return "Error";
+        return { kind: "failure", message: "Cache directory does not exist" };
     }
 
     const variablesToRun = 
@@ -39,18 +71,57 @@ export async function processJob(job:EcosetJobRequest, jobId:string|number) {
         { Latitude: job.LatitudeNorth, Longitude: job.LongitudeWest }
     ]
 
-    console.log(boundingBox);
-
     const time : Time = { kind: "latest" }
 
+    const kahn = (nodes:Node[]) => {
+        let L = Array<Node>();
+        let S = nodes.filter(n => n.Dependencies.length == 0);
+
+        let graph = nodes;
+        while (S.length > 0) {
+            console.log(S.length);
+            let n = S.pop() as Node;
+            console.log(S.length);
+            L.push(n);
+            for (let index = 0; index < graph.length; index++) {
+                // For each (node m with edge e from n to m) do
+                if (graph[index].Dependencies.filter(m => m.Variable.Name == n.Variable.Name).length > 0) {
+                    // Remove edge mathed from graph.
+                    graph[index] = { Variable: graph[index].Variable, Dependencies: graph[index].Dependencies.filter(x => x.Variable.Name !== n.Variable.Name) };
+                    
+                    if (graph[index].Dependencies.length == 0) {
+                        S.push(graph[index]);
+                    }
+                }
+            }
+        }
+
+        if (graph.filter(m => m.Dependencies.length > 0).length > 0) {
+            throw "Dependency tree has at least one circularity.";
+        }
+        return L;
+    }
+
+    const nodes = variablesToRun.map(v => getNodeTree(v, variablesToRun));
+    const orderedNodes = kahn(nodes);
+
+    // TODO Group nodes into levels to run using Promise.All
+
     const workloads = 
-        variablesToRun.map(v => {
-            const fileTemplate = cacheDir + "/" + v.Name + "_" + v.Method.Id;
-            return v.Method.Imp.computeToFile(boundingBox, time, fileTemplate, null);
+        orderedNodes.map(node => {
+            const fileTemplate = cacheDir + node.Variable.Name + "_" + node.Variable.Method.Id;
+            const v = node.Variable.Method.Imp.computeToFile(boundingBox, time, fileTemplate, null);
+            return v;
         });
-    
-    const results = await Promise.all(workloads)
-        .catch(e => console.log(e));
+
+    const results = workloads.forEach(async wl => {
+        return await wl.catch(e => {
+            console.log("Error in workload: " + e);
+        });
+    });
+
+    // const results = await Promise.all(workloads)
+    //     .catch(e => console.log(e));
 
     winston.info("All workloads complete for analysis: " + jobId);
 
@@ -60,13 +131,12 @@ export async function processJob(job:EcosetJobRequest, jobId:string|number) {
     
     for (let index = 0; index < variablesToRun.length; index++) {
 
-    // variablesToRun.map(async v => {
         const variableResult = cacheDir + "/" + variablesToRun[index].Name + "_" + variablesToRun[index].Method.Id + "_output.json";
         console.log("File is: " + variableResult);
         if (!fs.existsSync(variableResult)) {
             console.log("file doesn't exist");
             winston.warn("No data in result: " + variablesToRun[index].Name + "; method: " + variablesToRun[index].Method.Id);
-            return;
+            return { kind: "failure", message: "No data in result: " + variablesToRun[index].Name + "; method: " + variablesToRun[index].Method.Id };
         }
         winston.info("Synthesising results: " + variablesToRun[index].Name + " - " + variablesToRun[index].Method.Id);
         fs.appendFileSync(finalOutputFile, "{ \"name\":\""
@@ -93,24 +163,5 @@ export async function processJob(job:EcosetJobRequest, jobId:string|number) {
         }
     }
 
-    return results;
+    return { kind: "ok", result: undefined };
 }
-
-// for (var x = 0; x < variableMethods.length; x++) {
-//     console.log("Loaded variable method: " + variableMethods[x].name);
-//     // const panel = new variableMethods[x]();
-//     // panel.computeToFile();
-// }
-
-// Determines available variables based on contraints.
-// export function listVariables(time?: Date, space?: PointWGS84[]) {
-
-//     let filtered = variableMethods;
-
-//     if (time != null) {
-//         filtered =
-//             filtered.filter(v => {
-//                 v.
-//             })
-//     }
-// }

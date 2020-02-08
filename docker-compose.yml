@@ -8,9 +8,6 @@ services:
      - "5002"
     links:
      - "redis"
-    networks:
-        - default
-        - ecoset_default
   redis:
     image: redis:latest
     command: redis-server --appendonly yes

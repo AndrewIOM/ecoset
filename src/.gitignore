@@ -4,3 +4,4 @@
 .yarn/build-state.yml
 .pnp.*
 .yarn
+build/

@@ -11,5 +11,6 @@ export const queue = new bull<EcosetJobRequest>('ecoset', {
 
 queue.process(async (job:bull.Job<EcosetJobRequest>) => {
     console.log("Running job");
-    return processJob(job.data, job.id);
+    const result = processJob(job.data, job.id);
+    job.finished();
 });

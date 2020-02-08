@@ -1,4 +1,4 @@
-import { IVariableMethod, PointWGS84 } from "./types";
+import { IVariableMethod, PointWGS84, TemporalDimension } from "./types";
 import config from 'config';
 import winston from 'winston';
 import  "./../variable-methods/index";
@@ -10,9 +10,10 @@ type MethodListItem = {
     Id: string
     FriendlyName: string
     Description: string
-    Implementation: string
     License: string
     LicenseUrl: string
+    Implementation: string
+    DependsOn: string[]
     Options: any
 }
 
@@ -42,6 +43,7 @@ let parseVariableConfiguration =
                         Implementation: v.implementation,
                         License: v.license,
                         LicenseUrl: v.licenseUrl,
+                        DependsOn: v.depends_on == undefined ? [] : v.depends_on,
                         Options: v.options
                     }
                 })
@@ -66,7 +68,8 @@ const variablesWithDimensions = (variables:VariableListItem[]) => {
         const methods = 
             v.Methods.map(m => {
                 const imp = variableMethods.find(vm => m.Implementation == vm.name.replace("VariableMethod",""));
-                if (imp == undefined) { return null; }
+                const dependenciesExist = m.DependsOn.every(d => variables.find(x => x.Id == d) !== undefined);
+                if (imp == undefined || !dependenciesExist) { return null; }
                 const method = new imp(m.Options);
                 return {
                     Id: m.Id,
@@ -102,4 +105,15 @@ friendlyVariables.map(v => winston.info("Loaded dimensions for: " + v.Name))
 
 export function listVariables () {
     return friendlyVariables;
+}
+
+export function getDependencies (variableId:string, methodId:string) {
+    const v = variables.find(m => m.Id == variableId);
+    if (v) {
+        const m = v.Methods.find(m => m.Id == methodId);
+        if (m) {
+            return m.DependsOn;
+        }
+    }
+    return [];
 }

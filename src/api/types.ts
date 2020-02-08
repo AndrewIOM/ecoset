@@ -55,6 +55,23 @@ export interface ContinuousTime {
 
 export type TemporalDimension = SlicedTime | ContinuousTime
 
+// export interface RasterData {
+//     kind: "rasterData";
+//     raster: number[][];
+// }
+
+// export interface PointData {
+//     kind: "pointData";
+//     points: []
+// }
+
+// export interface SummaryData {
+//     kind: "summaryTable";
+//     summary: Map<string,any>
+// }
+
+// type ComputeResult = SummaryData | PointData | RasterData
+
 // Represents a computation function for a variable
 export interface IVariableMethod {
 

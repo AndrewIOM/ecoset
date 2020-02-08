@@ -7,3 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Documentation website using Docusaurus.
+- Swagger API interface.
+- Method: intersect shapefile.
+- Method: intersect geotiffs.
+- Single configuration file as .yml.
+
+### Changed
+- Dependency structure of variable methods now defined in central config.yml.
+- Moved to Bull from Kue for queueing mechanism.

@@ -17,7 +17,7 @@ gbifdb:
 
 locations:
     tileroot: &tileroot "c:/sometiledir"
-    cache: /mnt/c/Users/EcosetDev/Desktop/test-ecoset-cache
+    cache: /Users/andrewmartin/Desktop/ecoset/cache
 
 variables:
 
@@ -41,7 +41,7 @@ variables:
         description: "Marine ecoregions are ecoregions (ecological regions) of the oceans and seas identified and defined based on biogeographic characteristics."
         unit: ecoregion
         methods:
-            - default:
+            - wwf:
                 name: "Default"
                 description: "Data source: WWF"
                 license: GPLv2
@@ -80,6 +80,6 @@ variables:
                 licenseUrl: https://opensource.org/licenses/GPL-3.0
                 implementation: IntersectShape
                 options:
-                    shapedir: /Users/andrewmartin/Desktop/ecoset/datasets/sample-data/groms
+                    shapefileDir: /Users/andrewmartin/Desktop/ecoset/datasets/sample-data/groms
 
     
