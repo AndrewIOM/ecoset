@@ -1,7 +1,7 @@
 import config from 'config';
 import redis from 'redis';
-import winston from 'winston';
-import { JobState } from './types';
+import { JobState } from './types'
+import { logger } from './logger';;
 import {promisify} from 'util';
 
 const getAsync = (client:redis.RedisClient) => {
@@ -19,7 +19,7 @@ function create() {
         prefix: "state:"
     });
     client.on("error", err => { 
-        winston.error("Redis error states: " + err) 
+        logger.error("Redis error states: " + err) 
     });
     return client;
 }

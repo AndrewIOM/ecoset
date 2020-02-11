@@ -1,6 +1,7 @@
 import fs from 'fs';
+import path from 'path';
 import readline from 'readline';
-import winston = require("winston");
+import { logger } from './logger';
 import { EcosetJobRequest, Time, PointWGS84, TemporalDimension, IVariableMethod, Result } from "./types";
 import { listVariables, getDependencies } from "./registry";
 import { tryEstablishCache } from "./output-cache";
@@ -45,7 +46,7 @@ const getNodeTree = (variable:VariableToRun, variablesToRun:VariableToRun[]) : N
 
 export async function processJob(job:EcosetJobRequest, jobId:string|number) : Promise<Result<void,string>> {
 
-    winston.info("Starting processing of analysis: " + JSON.stringify(job));
+    logger.info("Starting processing of analysis: " + JSON.stringify(job));
     
     const cacheDir = tryEstablishCache(jobId.toString());
     if (cacheDir == null) {
@@ -79,9 +80,7 @@ export async function processJob(job:EcosetJobRequest, jobId:string|number) : Pr
 
         let graph = nodes;
         while (S.length > 0) {
-            console.log(S.length);
             let n = S.pop() as Node;
-            console.log(S.length);
             L.push(n);
             for (let index = 0; index < graph.length; index++) {
                 // For each (node m with edge e from n to m) do
@@ -105,8 +104,6 @@ export async function processJob(job:EcosetJobRequest, jobId:string|number) : Pr
     const nodes = variablesToRun.map(v => getNodeTree(v, variablesToRun));
     const orderedNodes = kahn(nodes);
 
-    // TODO Group nodes into levels to run using Promise.All
-
     const workloads = 
         orderedNodes.map(node => {
             const fileTemplate = cacheDir + node.Variable.Name + "_" + node.Variable.Method.Id;
@@ -114,16 +111,23 @@ export async function processJob(job:EcosetJobRequest, jobId:string|number) : Pr
             return v;
         });
 
-    const results = workloads.forEach(async wl => {
-        return await wl.catch(e => {
-            console.log("Error in workload: " + e);
-        });
+    // TODO Group nodes into levels to run using Promise.All
+    const runInSequence = async (functions: Promise<Result<void, string>>[]) => {
+        const results = [];
+        for (const fn of functions) { results.push(await fn); }
+        return results;
+    }
+
+    const results = await runInSequence(workloads).then(x => {
+        logger.info("All workloads completed");
+        return x;
     });
 
-    // const results = await Promise.all(workloads)
-    //     .catch(e => console.log(e));
+    if (results.find(r => r.kind == "failure")) {
+        return { kind: "failure", message: "There was an internal error with your analysis"};
+    }
 
-    winston.info("All workloads complete for analysis: " + jobId);
+    logger.info("All workloads complete for analysis: " + jobId);
 
     // Merge all outputs into a single output (for sending all at once)
     const finalOutputFile = cacheDir + "/output.json";
@@ -131,14 +135,14 @@ export async function processJob(job:EcosetJobRequest, jobId:string|number) : Pr
     
     for (let index = 0; index < variablesToRun.length; index++) {
 
-        const variableResult = cacheDir + "/" + variablesToRun[index].Name + "_" + variablesToRun[index].Method.Id + "_output.json";
-        console.log("File is: " + variableResult);
+        const variableResult = path.join(cacheDir, variablesToRun[index].Name + "_" + variablesToRun[index].Method.Id + "_output.json");
+        logger.debug("File is: " + variableResult);
         if (!fs.existsSync(variableResult)) {
-            console.log("file doesn't exist");
-            winston.warn("No data in result: " + variablesToRun[index].Name + "; method: " + variablesToRun[index].Method.Id);
+            logger.warn("file doesn't exist");
+            logger.warn("No data in result: " + variablesToRun[index].Name + "; method: " + variablesToRun[index].Method.Id);
             return { kind: "failure", message: "No data in result: " + variablesToRun[index].Name + "; method: " + variablesToRun[index].Method.Id };
         }
-        winston.info("Synthesising results: " + variablesToRun[index].Name + " - " + variablesToRun[index].Method.Id);
+        logger.info("Synthesising results: " + variablesToRun[index].Name + " - " + variablesToRun[index].Method.Id);
         fs.appendFileSync(finalOutputFile, "{ \"name\":\""
             + variablesToRun[index].Name + "\",\"implementation\":\"" + variablesToRun[index].Method.Id
             + "\",\"output_format\":\"" + "UNKNOWN" + "\",\"stat\":\""
@@ -163,5 +167,6 @@ export async function processJob(job:EcosetJobRequest, jobId:string|number) : Pr
         }
     }
 
+    logger.info("Analysis complete");
     return { kind: "ok", result: undefined };
 }

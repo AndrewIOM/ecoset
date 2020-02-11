@@ -96,14 +96,13 @@ const cleanIntermediates = (outfile:string) => {
 
 function getTileFiles(tileList:string[],tileDir:string) {
     let tileFileList : string[] = [];
-    let tilePrefix = "coastalecosystems_";
     for (var t in tileList) {
         const tileName = tileList[t];
-        const tileFileName = tileDir + '/' + tileName.substring(0, 3) + '/' + tilePrefix + tileName + '.tif';
-        if (fs.existsSync(tileFileName)) {
-            tileFileList.push(tileDir + '/' + tileName.substring(0, 3) + '/' + tilePrefix + tileName + '.tif');
+        const tileFileName = fs.readdirSync(tileDir + '/' + tileName.substring(0, 3) + '/').find(t => t.toLowerCase().endsWith(tileName + '.tif'));
+        if (tileFileName) {
+            tileFileList.push(tileDir + '/' + tileName.substring(0, 3) + '/' + tileFileName);
         } else {
-            console.info("The following tile was missing: " + tileFileName);
+            console.info("The following tile was missing: " + tileName);
         };
     };
     return tileFileList;
@@ -149,7 +148,7 @@ export async function run(
     const overlappingTileFiles = getTileFiles(overlappingTiles, timeSlice.Slice);
 
     // Spawn Python process: MERGE
-    let commandOpts = [__dirname + '/gdal_merge.py', '-init', noDataValue, '-a_nodata', noDataValue, '-o', outputFileTemplate + '_merged.tif']
+    let commandOpts = [__dirname + '/gdal_merge.py', '-init', noDataValue, '-a_nodata', noDataValue, '-o', outputFileTemplate + '_merged.tif' ]
     commandOpts = commandOpts.concat(overlappingTileFiles);
     const outputMerge = await runCommand("python3", commandOpts, true, false);
 

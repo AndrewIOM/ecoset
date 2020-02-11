@@ -3,7 +3,7 @@ import bodyParser = require('body-parser');
 import config from 'config';
 import express = require('express');
 import swaggerUi from 'swagger-ui-express';
-import Winston = require("winston");
+import { logger } from './logger';
 
 import { RegisterRoutes } from './routes/routes';
 import { queue } from './queue';
@@ -24,5 +24,5 @@ app.use('/admin/queues', bullBoard.UI);
 app.use('/', swaggerUi.serve, swaggerUi.setup(x));
 
 app.listen(config.get("api.port"), () => {
-    Winston.info('Example app listening on port ' + config.get("api.port"));
+    logger.info('Example app listening on port ' + config.get("api.port"));
 });

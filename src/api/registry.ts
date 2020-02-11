@@ -1,6 +1,6 @@
 import { IVariableMethod, PointWGS84, TemporalDimension } from "./types";
 import config from 'config';
-import winston from 'winston';
+import { logger } from './logger';
 import  "./../variable-methods/index";
 
 // Configuration file parser
@@ -99,9 +99,9 @@ const variables = parseVariableConfiguration(config.get("variables"));
 const variableMethods = IVariableMethod.getImplementations();
 const friendlyVariables = variablesWithDimensions(variables);
 
-variableMethods.map(v => { winston.info("Loaded method: " + v.name) })
-variables.map(v => { winston.info("Loaded variable: " + v.FriendlyName) })
-friendlyVariables.map(v => winston.info("Loaded dimensions for: " + v.Name))
+variableMethods.map(v => { logger.info("Loaded method: " + v.name) })
+variables.map(v => { logger.info("Loaded variable: " + v.FriendlyName) })
+friendlyVariables.map(v => logger.info("Loaded dimensions for: " + v.Name))
 
 export function listVariables () {
     return friendlyVariables;
