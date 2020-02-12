@@ -87,19 +87,18 @@ const getTime = async (conn: Connection | undefined, gbifTable: string) : Promis
 
     if (conn == undefined) { return undefined; }
     const query = `SELECT MIN(gbif_eventdate) as min, MAX(gbif_eventdate) as max from ${gbifTable}`;
-    logger.info(query);
+    logger.info("Determining temporal extent of GBIF database...");
 
     return await conn.query(query).catch(err => {
         logger.error("Could not determine date range of GBIF data. " + err);
         return undefined;
     }).then(bounds => {
-        logger.info("Found temporal bounds. " + JSON.stringify(bounds));
-        const low = new Date(bounds.min);
-        const high = new Date(bounds.max);
-        return { kind: "timeExtent", minDate: { Year: low.getFullYear(), Month: low.getMonth(), Day: low.getDay() }, 
-            maxDate: { Year: high.getFullYear(), Month: high.getMonth(), Day: high.getDay() } };
+        logger.info("Found temporal extent for GBIF database: " + JSON.stringify(bounds));
+        const low = new Date(bounds[0].min);
+        const high = new Date(bounds[0].max);
+        return { kind: "timeExtent", minDate: { Year: low.getFullYear(), Month: low.getMonth() + 1, Day: low.getDay() + 1 }, 
+            maxDate: { Year: high.getFullYear(), Month: high.getMonth() + 1, Day: high.getDay() + 1 } };
     })
-
 }
 
 const count = async (conn: Connection | undefined, gbifTable: string,

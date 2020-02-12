@@ -6,17 +6,13 @@
   "contributors": [
     "Phillip Holland"
   ],
-  "license" : "MIT",
+  "license": "MIT",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpileOnly ./api/app.ts",
     "prod": "tsc && yarn run copy:assets && yarn node ./build/api/app.js",
     "tsc": "tsc",
     "tsoa:gen": "tsoa swagger && tsoa routes",
     "copy:assets": "cp -rv 'api/dist' 'build/api/dist'"
-  },
-  "resolutions": {
-    "@turf/nearest-point-to-line": "6.0.0",
-    "@turf/point-to-line-distance": "6.0.0"
   },
   "dependencies": {
     "@turf/turf": "^5.1.6",

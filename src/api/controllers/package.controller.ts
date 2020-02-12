@@ -2,7 +2,7 @@ import { Body, Controller, Get, Header, Path, Post, Query, Route, SuccessRespons
 import { JobState, EcosetJobRequest } from '../types';
 import { redisStateCache } from '../state-cache';
 import { queue } from '../queue';
-import { listVariables } from '../registry';
+import { listVariableDtos } from '../registry';
 
 const stateCache = redisStateCache.create();
 
@@ -22,7 +22,7 @@ export class DataPackageController extends Controller {
 
 		@Get('list')
 		public async list() {
-			return listVariables();
+			return listVariableDtos();
 		}
 
 }

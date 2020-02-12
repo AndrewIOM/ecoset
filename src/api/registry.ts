@@ -91,20 +91,35 @@ const variablesWithDimensions = (variables:VariableListItem[]) => {
     });
 }
 
+interface MethodDTO {
+    Id: string,
+    Name: string,
+    License: string,
+    LicenseUrl: string,
+    TemporalExtent: TemporalDimension,
+    SpatialExtent: PointWGS84[]
+}
+
+interface VariableDTO {
+    Id: string
+    FriendlyName: string
+    Description: string
+    Unit: string
+    Methods: MethodDTO[]
+}
 
 // Load variables and config
 // __________________________
 
 const variables = parseVariableConfiguration(config.get("variables"));
 const variableMethods = IVariableMethod.getImplementations();
-const friendlyVariables = variablesWithDimensions(variables);
+const implementedVariables = variablesWithDimensions(variables);
 
 variableMethods.map(v => { logger.info("Loaded method: " + v.name) })
-variables.map(v => { logger.info("Loaded variable: " + v.FriendlyName) })
-friendlyVariables.map(v => logger.info("Loaded dimensions for: " + v.Name))
+implementedVariables.map(v => { logger.info("Loaded variable: " + v.Name) })
 
 export function listVariables () {
-    return friendlyVariables;
+    return implementedVariables;
 }
 
 export function getDependencies (variableId:string, methodId:string) {
@@ -116,4 +131,25 @@ export function getDependencies (variableId:string, methodId:string) {
         }
     }
     return [];
+}
+
+export function listVariableDtos () : VariableDTO[] {
+    return implementedVariables.map(v => {
+        return {
+            Id: v.Id,
+            FriendlyName: v.Name, 
+            Description: v.Description,
+            Unit: v.Unit,
+            Methods: v.Methods.map(m => {
+                return {
+                    Id: m.Id,
+                    Name: m.Name,
+                    License: m.License,
+                    LicenseUrl: m.LicenseUrl,
+                    TemporalExtent: m.Imp.temporalDimension(),
+                    SpatialExtent: m.Imp.spatialDimension()              
+                }
+            })
+        }
+    })
 }

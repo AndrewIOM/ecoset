@@ -1,9 +1,11 @@
-import winston from 'winston';
+import winston, { format } from 'winston';
 
 export const logger = winston.createLogger({
     level: 'info',
-    format: winston.format.json(),
-    transports: [
+    format: format.combine(
+        winston.format.json(),
+        winston.format.timestamp({ format: 'YY-MM-DD HH:mm:ss'})),
+        transports: [
         new winston.transports.File({ filename: 'error.log', level: 'error' }),
         new winston.transports.File({ filename: 'combined.log' })
     ]
@@ -11,7 +13,10 @@ export const logger = winston.createLogger({
 
 if (process.env.NODE_ENV !== 'production') {
     logger.add(new winston.transports.Console({
-        format: winston.format.simple()
+        format: format.combine(
+            winston.format.colorize(),
+            winston.format.timestamp({ format: 'YY-MM-DD HH:mm'}),
+            winston.format.prettyPrint(),
+            winston.format.simple())
     }));
 }
-
