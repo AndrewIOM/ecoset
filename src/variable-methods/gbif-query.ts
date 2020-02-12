@@ -1,29 +1,146 @@
 import { IVariableMethod, PointWGS84, Result, Time, TemporalDimension } from "./../api/types"
-import {Index, Entity, Column, PrimaryGeneratedColumn, getConnectionManager, createQueryBuilder, getRepository} from "typeorm";
-import config from "config";
+import {Index, Entity, Connection, Column, PrimaryGeneratedColumn, getConnectionManager } from "typeorm";
+import fs from 'fs';
+import { polygon, buffer } from '@turf/turf';
+import { logger } from "../api/logger";
+
+type GbifConfig = {
+    Host: string
+    Username: string
+    Password: string
+    Database: string
+    GbifTable: string
+    GbifCoordTable: string
+}
+
+const validateConfig = (config:any) => {
+
+    if (config.host == null || config.username == null ||
+        config.password == null || config.database == null ||
+        config.gbif_table == null || config.gbif_coord_table == null) 
+        throw Error("Database configuration was incomplete.");
+
+    const c : GbifConfig = {
+        Host: config.host,
+        Username: config.username,
+        Password: config.password,
+        Database: config.database,
+        GbifTable: config.gbif_table,
+        GbifCoordTable: config.gbif_coord_table
+    }
+    return c;
+}
 
 @IVariableMethod.register
 class GbifQueryVariableMethod {
+
+    config: GbifConfig;
+    time : TemporalDimension | undefined;
+    conn : Connection | undefined;
+
+    constructor(conf:any) {
+        this.config = (validateConfig(conf));
+
+        const connectionManager = getConnectionManager();
+        const connection = connectionManager.create({
+            type: "mysql",
+            host: this.config.Host,
+            port: 3306,
+            username: this.config.Username,
+            password: this.config.Password,
+            database: this.config.Database,
+            cache: true
+        });
+
+        connection.connect()
+        .then(c => {
+            this.conn = c;
+            getTime(this.conn, this.config.GbifTable).then(t => this.time = t );
+        })
+        .catch(e => {
+            logger.error("Error connecting to GBIF database: " + e);
+        });
+
+    }
 
     availableOutputTypes() {
         return [ "list" ];
     }
 
     async computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) {
-        return count(space);
+        return count(this.conn, this.config.GbifTable, this.config.GbifCoordTable, space, outputDir);
      }
 
     spatialDimension() { return []; }
 
     temporalDimension() : TemporalDimension { 
-        return { kind: "timeExtent", minDate: { Year: 1980 }, maxDate: { Year: 2020 }}; }
+        if (this.time) { return this.time; }
+        return { kind: "timeExtent", minDate: { Year: 1980 }, maxDate: { Year: 2020 }}; 
+    }
 
     availableForDate() { return true; }
 
     availableForSpace() { return true; }
 }
 
-// Entity
+const getTime = async (conn: Connection | undefined, gbifTable: string) : Promise<TemporalDimension | undefined> => {
+
+    if (conn == undefined) { return undefined; }
+    const query = `SELECT MIN(gbif_eventdate) as min, MAX(gbif_eventdate) as max from ${gbifTable}`;
+    logger.info(query);
+
+    return await conn.query(query).catch(err => {
+        logger.error("Could not determine date range of GBIF data. " + err);
+        return undefined;
+    }).then(bounds => {
+        logger.info("Found temporal bounds. " + JSON.stringify(bounds));
+        const low = new Date(bounds.min);
+        const high = new Date(bounds.max);
+        return { kind: "timeExtent", minDate: { Year: low.getFullYear(), Month: low.getMonth(), Day: low.getDay() }, 
+            maxDate: { Year: high.getFullYear(), Month: high.getMonth(), Day: high.getDay() } };
+    })
+
+}
+
+const count = async (conn: Connection | undefined, gbifTable: string,
+    gbifCoordTable: string, space:PointWGS84[], output:string) : Promise<Result<void,string>> => {
+
+    if (conn == undefined) {
+        return { kind: "failure", message: "Could not connect to GBIF database" };
+    }
+
+    const poly = polygon([space.map(s => [s.Latitude, s.Longitude])]);
+    const bufferedPoly = buffer(poly, 3, { units: 'degrees' });
+
+    let wkt = "POLYGON ((";
+    bufferedPoly.geometry?.coordinates[0].forEach(pos => {
+        wkt = wkt + pos[0] + " " + pos[1] + ",";
+    });
+    wkt = wkt.substr(0, wkt.length - 1) + "))";
+    logger.info("WKT is: " + wkt);
+
+    const query = 
+        `select taxonomicgroup as taxon, count(distinct gbif_species) as species, count(gbif_species) as count \
+        from ${gbifTable} m \
+        left join ${gbifCoordTable} c \
+        on m.gbif_gbifid=c.gbif_gbifid \
+        where gbif_species<>'' and \
+        ST_Contains(ST_GeomFromText('${wkt}'), c.coordinate) \
+        group by taxonomicgroup;`;
+
+    logger.info("Running GBIF query: " + query);
+
+    return await conn.query(query).catch(err => {
+        logger.error("Could not count GBIF records. " + err);
+        return { kind: "failure", message: "Could not count GBIF records "};
+    }).then(counts => {
+        logger.info("Counted GBIF records successfully");
+        fs.writeFileSync(output + "_output.json", JSON.stringify(counts));
+        return { kind: "ok", result: undefined };
+    })
+
+}
+
 
 @Entity("master")
 export class GbifRecord {
@@ -106,55 +223,4 @@ export class GbifOrganisation {
 
     @Column({ type: "varchar", length: 255 })
     title!: string
-}
-
-// Use it
-// Setup mysql
-
-const connectionManager = getConnectionManager();
-const connection = connectionManager.create({
-    type: "mysql",
-    host: config.get("gbifdb.host"),
-    port: 3306,
-    username: config.get("gbifdb.username"),
-    password: config.get("gbifdb.password"),
-    database: config.get("gbifdb.database"),
-});
-
-import turf from '@turf/turf';
-
-const count = async (space:PointWGS84[]) : Promise<Result<void,string>> => {
-
-    // 1. Make a connection
-    let conn = await connection.connect();//.catch(e => {
-    //     console.log("Error connecting to GBIF mirror: " + e);
-    //     return { kind: "error", message: "Could not connect to GBIF database" }
-    // });
-
-    const buffer = 3;
-    const poly = turf.polygon([space.map(s => [s.Latitude, s.Longitude])]);
-    const bufferedPoly = turf.buffer(poly, buffer);
-
-    
-
-    // const query = `select count(*) as count \
-    // from ${config.get("gbif_list.gbif_table")} m \
-    // left join ${config.get("gbif_list.gbif_coord_table")} c \
-    // on m.gbif_gbifid=c.gbif_gbifid \
-    // where gbif_species<>'' and \
-    // mbrcontains(ST_GeomFromText(CONCAT('LINESTRING(', ?, ' ', ?, ',', ?, ' ', ?, ')')), coordinate); \
-    // `, [bufferedSouth, bufferedWest, bufferedNorth, bufferedEast]
-
-
-    const count = await conn
-        .getRepository(GbifRecord)
-        .createQueryBuilder("record")
-        .leftJoinAndSelect("record.gbif_gbifid", "gbif_gbifid")
-        .where("record.gbif_species <> :name", { name: "" })
-        .where('')
-        // .leftJoinAndSelect("")
-        .getMany();
-
-    return { kind: "ok", result: undefined };
-
 }
