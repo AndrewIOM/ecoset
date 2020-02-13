@@ -142,7 +142,7 @@ export enum JobState {
 type Variable = {
     Name: string
     Method: string
-    Options: Map<string,any>
+    Options?: any
 }
 
 // An API request DTO

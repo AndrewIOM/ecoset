@@ -2,9 +2,10 @@ import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
 import { logger } from './logger';
-import { EcosetJobRequest, Time, PointWGS84, TemporalDimension, IVariableMethod, Result } from "./types";
+import { EcosetJobRequest, Time, PointWGS84, TemporalDimension, IVariableMethod, Result, JobState } from "./types";
 import { listVariables, getDependencies } from "./registry";
 import { tryEstablishCache } from "./output-cache";
+import { redisStateCache, stateCache } from './state-cache';
 
 const variables = listVariables();
 
@@ -72,10 +73,11 @@ const kahn = (nodes:Node[]) => {
     return L;
 }
 
-export async function processJob(job:EcosetJobRequest, jobId:string|number) : Promise<Result<void,string>> {
+export async function processJob(job:EcosetJobRequest, jobId:number) : Promise<Result<void,string>> {
 
     logger.info("Starting processing of analysis: " + JSON.stringify(job));
-    
+    redisStateCache.setState(stateCache, jobId, JobState.Processing);
+
     const cacheDir = tryEstablishCache(jobId.toString());
     if (cacheDir == null) {
         return { kind: "failure", message: "Cache directory does not exist" };
@@ -100,15 +102,13 @@ export async function processJob(job:EcosetJobRequest, jobId:string|number) : Pr
         { Latitude: job.LatitudeNorth, Longitude: job.LongitudeWest }
     ]
 
-    const time : Time = { kind: "latest" }
-
     const nodes = variablesToRun.map(v => getNodeTree(v, variablesToRun));
     const orderedNodes = kahn(nodes);
 
     const workloads = 
         orderedNodes.map(node => {
             const fileTemplate = cacheDir + node.Variable.Name + "_" + node.Variable.Method.Id;
-            const v = node.Variable.Method.Imp.computeToFile(boundingBox, time, fileTemplate, node.Variable.Options);
+            const v = node.Variable.Method.Imp.computeToFile(boundingBox, job.TimeMode, fileTemplate, node.Variable.Options);
             return v;
         });
 
@@ -168,6 +168,7 @@ export async function processJob(job:EcosetJobRequest, jobId:string|number) : Pr
         }
     }
 
+    redisStateCache.setState(stateCache, jobId, JobState.Ready);
     logger.info("Analysis complete");
     return { kind: "ok", result: undefined };
 }

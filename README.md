@@ -18,3 +18,7 @@ Ecoset processes and serves geospatial information about environmental variables
 Key requirements for local development:
 - node v10+
 - yarn v1 global install
+
+## Things to do
+
+- Implement filters for pre- and post-processing of datasets (e.g. buffer in pre-, summarise in post-).

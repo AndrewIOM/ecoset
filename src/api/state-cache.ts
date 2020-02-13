@@ -49,3 +49,5 @@ export const redisStateCache : StateCache = {
     getState: getJobState,
     setState: setJobState
 };
+
+export const stateCache = create();

@@ -1,11 +1,9 @@
 import { Body, Controller, Get, Header, Path, Post, Query, Route, SuccessResponse } from 'tsoa';
 import { JobState, EcosetJobRequest } from '../types';
-import { redisStateCache } from '../state-cache';
+import { stateCache, redisStateCache } from '../state-cache';
 import { queue } from '../queue';
 import { listVariableDtos } from '../registry';
 import * as cache from '../output-cache';
-
-const stateCache = redisStateCache.create();
 
 @Route('Data')
 export class DataPackageController extends Controller {
@@ -34,8 +32,7 @@ export class DataPackageController extends Controller {
 				if (pkg.isCompleted()) {
 					const stream = cache.getCachedResult(packageId.toString());
 					if (!stream) return undefined;
-					console.log(stream);
-					return stream.read();
+					return stream;
 				}
 			}
 		}
