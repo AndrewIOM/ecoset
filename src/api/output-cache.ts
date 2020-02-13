@@ -21,3 +21,10 @@ export function tryEstablishCache(jobId:string) {
     logger.info("Created file cache for job: " + jobId);
     return jobCacheDir;
 }
+
+export function getCachedResult(jobId:string) {
+    const cachedResult = path.format({ dir: cacheRootDir + "/" + jobId, base: "output.json" });
+    if (fs.existsSync(cachedResult)) {
+        return fs.createReadStream(cachedResult);
+    }
+}

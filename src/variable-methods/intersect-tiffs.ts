@@ -40,7 +40,8 @@ class IntersectTiffsVariableMethod {
     computeToFile(space:PointWGS84[],time:Time,outputDir:string,options?:any) : Promise<Result<void, string>> {
         const buffer = options == undefined ? 0 : options.buffer;
         const resolution = options == undefined ? undefined : options.resolution;
-        return run(space, time, this.config.TileDir, this.config.NoDataValue, outputDir, buffer, resolution);
+        const summaryOnly : boolean = options == undefined ? false : options.summarise;
+        return run(space, time, this.config.TileDir, this.config.NoDataValue, outputDir, summaryOnly, buffer, resolution);
     }
 }
 

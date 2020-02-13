@@ -83,6 +83,7 @@ const parseGdalInfo : ((o:string) => Statistic) = (output:string) => {
 }
 
 const cleanIntermediates = (outfile:string) => {
+    try { fs.unlinkSync(outfile + '.tif') } catch (e) {}
     try { fs.unlinkSync(outfile + '_merged.tif') } catch (e) {}
     try { fs.unlinkSync(outfile + '.prj') } catch (e) {}
     try { fs.unlinkSync(outfile + '.b64') } catch (e) {}
@@ -121,6 +122,7 @@ export async function run(
     tiledir:string, 
     noDataValue:number,
     outputFileTemplate: string,
+    summaryOnly:boolean,
     buffer?:number,
     resolution?:number ) : Promise<Result<void,string>> {
 
@@ -156,11 +158,20 @@ export async function run(
     commandOpts = ['-of', 'gtiff', '-te', bufferedBounds.LonMin, bufferedBounds.LatMin, bufferedBounds.LonMax, bufferedBounds.LatMax, outputFileTemplate + '_merged.tif', outputFileTemplate + '.tif'];
     const outputWindow = await runCommand("gdalwarp", commandOpts, true, false); 
 
-    // Translate?
+    // TODO Remove resolution / interpolation from here and place in seperate second transformation step
     commandOpts = ['-of', 'AAIGrid', outputFileTemplate + '.tif', outputFileTemplate + '.asc'];
+    if (resolution) {
+        if (resolution > 1) {
+            winston.info("Reducing output size to " + resolution + " maximum pixels");
+            const scaleFactor = (bufferedBounds.LonMax - bufferedBounds.LonMin) / (bufferedBounds.LatMax - bufferedBounds.LatMin);
+            if (scaleFactor > 1) {
+                commandOpts = ['-outsize', resolution, Math.round(resolution / scaleFactor)].concat(commandOpts);
+            } else {
+                commandOpts = ['-outsize', Math.round(resolution * scaleFactor), resolution].concat(commandOpts);
+            }
+        }
+    }
     const output = await runCommand('gdal_translate', commandOpts, true, false);
-
-    // TODO Resolution
 
     // Interpret output
     const outputInfo = await runCommand("gdalinfo", ['-json', '-stats', outputFileTemplate + '.tif'], true, false);
@@ -181,12 +192,20 @@ export async function run(
         data: ""
     };
 
+    // TODO Move this function to seperate filter / transform
+    if (summaryOnly) {
+        let outputJsonString = JSON.stringify(outputJson);
+        fs.writeFileSync(outputFileTemplate + '_output.json', outputJsonString);
+        cleanIntermediates(outputFileTemplate);
+        return { kind: "ok", result: undefined };    
+    }
+
     // Write output with placeholder
     // NB Remove end of json object to insert data
     let outputJsonString = JSON.stringify(outputJson);
     fs.writeFileSync(outputFileTemplate + '_output.json', outputJsonString.substring(0,outputJsonString.length - 3));
     fs.appendFileSync(outputFileTemplate + '_output.json', "{");
-    
+
     // Replace placeholder with actual data
     const file = readline.createInterface({
         input: fs.createReadStream(outputFileTemplate + '.asc')
@@ -234,9 +253,6 @@ export async function run(
 
     await writeData();
     winston.info("Cached result to file.");
-
-    // - Organise output format
-    // - Organise statistical transforms (should be seperate plugin?)
 
     cleanIntermediates(outputFileTemplate);
     return { kind: "ok", result: undefined };

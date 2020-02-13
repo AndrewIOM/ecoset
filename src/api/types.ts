@@ -142,7 +142,7 @@ export enum JobState {
 type Variable = {
     Name: string
     Method: string
-    // Statistics - are these required?
+    Options: Map<string,any>
 }
 
 // An API request DTO

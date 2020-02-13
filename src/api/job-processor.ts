@@ -23,6 +23,7 @@ type VariableToRun = {
         Space: PointWGS84[];
         Imp: IVariableMethod;
     }
+    Options: Map<string,any>
 }
 
 type Node = {
@@ -44,6 +45,33 @@ const getNodeTree = (variable:VariableToRun, variablesToRun:VariableToRun[]) : N
     return { Variable: variable, Dependencies: []};
 }
 
+const kahn = (nodes:Node[]) => {
+    let L = Array<Node>();
+    let S = nodes.filter(n => n.Dependencies.length == 0);
+
+    let graph = nodes;
+    while (S.length > 0) {
+        let n = S.pop() as Node;
+        L.push(n);
+        for (let index = 0; index < graph.length; index++) {
+            // For each (node m with edge e from n to m) do
+            if (graph[index].Dependencies.filter(m => m.Variable.Name == n.Variable.Name).length > 0) {
+                // Remove edge mathed from graph.
+                graph[index] = { Variable: graph[index].Variable, Dependencies: graph[index].Dependencies.filter(x => x.Variable.Name !== n.Variable.Name) };
+                
+                if (graph[index].Dependencies.length == 0) {
+                    S.push(graph[index]);
+                }
+            }
+        }
+    }
+
+    if (graph.filter(m => m.Dependencies.length > 0).length > 0) {
+        throw "Dependency tree has at least one circularity.";
+    }
+    return L;
+}
+
 export async function processJob(job:EcosetJobRequest, jobId:string|number) : Promise<Result<void,string>> {
 
     logger.info("Starting processing of analysis: " + JSON.stringify(job));
@@ -59,7 +87,7 @@ export async function processJob(job:EcosetJobRequest, jobId:string|number) : Pr
             if (v !== undefined) {
                 const m = v.Methods.find(m => m?.Id == vto.Method);
                 if (m == undefined) return null;
-                return { Name: vto.Name, Method: m };
+                return { Name: vto.Name, Method: m, Options: vto.Options };
             }
             return null;
         }).filter(notEmpty);
@@ -74,40 +102,13 @@ export async function processJob(job:EcosetJobRequest, jobId:string|number) : Pr
 
     const time : Time = { kind: "latest" }
 
-    const kahn = (nodes:Node[]) => {
-        let L = Array<Node>();
-        let S = nodes.filter(n => n.Dependencies.length == 0);
-
-        let graph = nodes;
-        while (S.length > 0) {
-            let n = S.pop() as Node;
-            L.push(n);
-            for (let index = 0; index < graph.length; index++) {
-                // For each (node m with edge e from n to m) do
-                if (graph[index].Dependencies.filter(m => m.Variable.Name == n.Variable.Name).length > 0) {
-                    // Remove edge mathed from graph.
-                    graph[index] = { Variable: graph[index].Variable, Dependencies: graph[index].Dependencies.filter(x => x.Variable.Name !== n.Variable.Name) };
-                    
-                    if (graph[index].Dependencies.length == 0) {
-                        S.push(graph[index]);
-                    }
-                }
-            }
-        }
-
-        if (graph.filter(m => m.Dependencies.length > 0).length > 0) {
-            throw "Dependency tree has at least one circularity.";
-        }
-        return L;
-    }
-
     const nodes = variablesToRun.map(v => getNodeTree(v, variablesToRun));
     const orderedNodes = kahn(nodes);
 
     const workloads = 
         orderedNodes.map(node => {
             const fileTemplate = cacheDir + node.Variable.Name + "_" + node.Variable.Method.Id;
-            const v = node.Variable.Method.Imp.computeToFile(boundingBox, time, fileTemplate, null);
+            const v = node.Variable.Method.Imp.computeToFile(boundingBox, time, fileTemplate, node.Variable.Options);
             return v;
         });
 
