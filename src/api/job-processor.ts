@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
 import { logger } from './logger';
-import { EcosetJobRequest, Time, PointWGS84, TemporalDimension, IVariableMethod, Result, JobState } from "./types";
+import { EcosetJobRequest, PointWGS84, TemporalDimension, IVariableMethod, Result, JobState } from "./types";
 import { listVariables, getDependencies } from "./registry";
 import { tryEstablishCache } from "./output-cache";
 import { redisStateCache, stateCache } from './state-cache';
@@ -36,12 +36,12 @@ type Node = {
 const getNodeTree = (variable:VariableToRun, variablesToRun:VariableToRun[]) : Node => {
     const dependencies = getDependencies(variable.Name, variable.Method.Id);
     if (dependencies.length > 0) {
-        const d =
+        const node =
             dependencies
             .map(d => variablesToRun.find(v => v.Name == d))
             .filter(notEmpty)
             .map(d => getNodeTree(d, variablesToRun));
-        return { Variable: variable, Dependencies: d };
+        return { Variable: variable, Dependencies: node };
     }
     return { Variable: variable, Dependencies: []};
 }
@@ -73,6 +73,17 @@ const kahn = (nodes:Node[]) => {
     return L;
 }
 
+const writeData = (fileReader:readline.Interface, finalOutputFile:string) => {
+    return new Promise(resolve => {
+        fileReader.on('line', function(line) {
+            fs.appendFileSync(finalOutputFile, line);
+        }).on("close", () => {
+            return resolve();
+        });
+    });
+}
+
+
 export async function processJob(job:EcosetJobRequest, jobId:number) : Promise<Result<void,string>> {
 
     logger.info("Starting processing of analysis: " + JSON.stringify(job));
@@ -85,9 +96,9 @@ export async function processJob(job:EcosetJobRequest, jobId:number) : Promise<R
 
     const variablesToRun = 
         job.Executables.map(vto => {
-            const v = variables.find(v => v.Id == vto.Name);
+            const v = variables.find(variable => variable.Id == vto.Name);
             if (v !== undefined) {
-                const m = v.Methods.find(m => m?.Id == vto.Method);
+                const m = v.Methods.find(method => method?.Id == vto.Method);
                 if (m == undefined) return null;
                 return { Name: vto.Name, Method: m, Options: vto.Options };
             }
@@ -114,9 +125,9 @@ export async function processJob(job:EcosetJobRequest, jobId:number) : Promise<R
 
     // TODO Group nodes into levels to run using Promise.All
     const runInSequence = async (functions: Promise<Result<void, string>>[]) => {
-        const results = [];
-        for (const fn of functions) { results.push(await fn); }
-        return results;
+        const allResults = [];
+        for (const fn of functions) { allResults.push(await fn); }
+        return allResults;
     }
 
     const results = await runInSequence(workloads).then(x => {
@@ -151,16 +162,7 @@ export async function processJob(job:EcosetJobRequest, jobId:number) : Promise<R
 
         const fileReader = readline.createInterface( {input: fs.createReadStream(variableResult) });
 
-        const writeData = () => {
-            return new Promise(resolve => {
-                fileReader.on('line', function(line) {
-                    fs.appendFileSync(finalOutputFile, line);
-                }).on("close", () => {
-                    return resolve();
-                });
-            });
-        }
-        await writeData();
+        await writeData(fileReader, finalOutputFile);
         if (index < variablesToRun.length - 1) {
             fs.appendFileSync(finalOutputFile, "},");
         } else {

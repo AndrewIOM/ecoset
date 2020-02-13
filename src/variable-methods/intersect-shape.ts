@@ -1,7 +1,6 @@
 import { IVariableMethod, TemporalDimension, SlicedTime, PointWGS84, Time, Result } from "./../api/types"
 import { timeSlices, temporalMatch } from "./utils/time-slices";
 import { runCommand } from "./utils/run-command";
-import es from 'event-stream';
 import fs from 'fs';
 import JSONstream from 'jsonstream';
 import path from 'path';
@@ -87,7 +86,7 @@ const cutShapefile = async (space:PointWGS84[], time:Time, shapefileDir:string, 
     const temporaryFile = outputFileTemplate + "_temp.json";
     const wktPolygon = "POLYGON ((" + (space.map(s => s.Latitude.toString() + " " + s.Longitude.toString()).join()) + "))";
     let commandOpts = ["-clipsrc", wktPolygon, temporaryFile, timeSlice.Slice + "/" + shapefile, "-f", "GeoJSON"];
-    const output = await runCommand("ogr2ogr", commandOpts, false, false);
+    await runCommand("ogr2ogr", commandOpts, false, false);
 
     if (!fs.existsSync(temporaryFile)) {
         winston.warn("ogr2ogr did not output anything.");

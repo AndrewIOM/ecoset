@@ -15,7 +15,7 @@ const isValidDate = (year:number, month:number, day:number) => {
 
 // Parses subdirectories as time slices based on format YYYY-MM-DD
 export const timeSlices = (tileDir:string) => {
-    const timeSlices = new Map<SimpleDate,string>();
+    const slices = new Map<SimpleDate,string>();
     const subdirectories = listSubDirectories(tileDir);
     subdirectories.forEach(subdir => {
         console.log("Subdir is " + subdir);
@@ -26,24 +26,24 @@ export const timeSlices = (tileDir:string) => {
             yr = Number(parts[0]);
         } else return;
         if (parts.length == 1) {
-            timeSlices.set({ Year: yr }, tileDir+'/'+subdir);
+            slices.set({ Year: yr }, tileDir+'/'+subdir);
         }
         if (!isNaN(Number(parts[1]))) {
             if (Number(parts[1]) > 0 && Number(parts[1]) < 13) { m = Number(parts[1]); }
             else return;
         } else return;
         if (parts.length == 2) {
-            timeSlices.set({ Year: yr, Month: m }, tileDir+'/'+subdir);
+            slices.set({ Year: yr, Month: m }, tileDir+'/'+subdir);
         }
         if (!isNaN(Number(parts[2]))) {
             d = Number(parts[2]);
             if (isValidDate(yr,m,d)) {
-                timeSlices.set({ Year: yr, Month: m, Day: d }, tileDir+'/'+subdir);
+                slices.set({ Year: yr, Month: m, Day: d }, tileDir+'/'+subdir);
             } 
         }
     });
-    winston.debug("Time slices: " + JSON.stringify(timeSlices));
-    return timeSlices;
+    winston.debug("Time slices: " + JSON.stringify(slices));
+    return slices;
 }
 
 // Find a matching filename given temporal slices and a time mode.

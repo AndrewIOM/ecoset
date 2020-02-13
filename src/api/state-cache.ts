@@ -1,7 +1,7 @@
 import config from 'config';
 import redis from 'redis';
-import { JobState } from './types'
-import { logger } from './logger';;
+import { JobState } from './types';
+import { logger } from './logger';
 import {promisify} from 'util';
 
 const getAsync = (client:redis.RedisClient) => {

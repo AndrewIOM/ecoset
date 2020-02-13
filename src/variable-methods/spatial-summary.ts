@@ -1,5 +1,5 @@
-import { IVariableMethod, TemporalDimension, SlicedTime, PointWGS84, Time, Result } from "./../api/types"
-import { getTimeSlices, run } from "./utils/merge-and-window";
+// import { IVariableMethod, TemporalDimension, SlicedTime, PointWGS84, Time, Result } from "./../api/types"
+// import { getTimeSlices, run } from "./utils/merge-and-window";
 
 // @IVariableMethod.register
 // class SpatialSummaryVariableMethod {

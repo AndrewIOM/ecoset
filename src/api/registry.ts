@@ -26,25 +26,25 @@ type VariableListItem = {
 }
 
 let parseVariableConfiguration = 
-    (variables:any[]) : VariableListItem[] =>
-        variables.map((x:any) => {
+    (vars:any[]) : VariableListItem[] =>
+        vars.map((x:any) => {
             let keys = Object.keys(x);
             let name = keys[0];
             let v = x[name];
             let methods =
                 v.methods.map((m:any) => {
-                    let keys = Object.keys(m);
-                    let name = keys[0];
-                    let v = m[name];
+                    let methodKeys = Object.keys(m);
+                    let methodName = methodKeys[0];
+                    let method = m[name];
                     return {
-                        Id: name,
-                        FriendlyName: v.name,
-                        Description: v.description,
-                        Implementation: v.implementation,
-                        License: v.license,
-                        LicenseUrl: v.licenseUrl,
-                        DependsOn: v.depends_on == undefined ? [] : v.depends_on,
-                        Options: v.options
+                        Id: methodName,
+                        FriendlyName: method.name,
+                        Description: method.description,
+                        Implementation: method.implementation,
+                        License: method.license,
+                        LicenseUrl: method.licenseUrl,
+                        DependsOn: method.depends_on == undefined ? [] : method.depends_on,
+                        Options: method.options
                     }
                 })
             return {
@@ -63,8 +63,8 @@ function notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
     return value !== null && value !== undefined;
 }
 
-const variablesWithDimensions = (variables:VariableListItem[]) => {
-    return variables.map(v => {
+const variablesWithDimensions = (vars:VariableListItem[]) => {
+    return vars.map(v => {
         const methods = 
             v.Methods.map(m => {
                 const imp = variableMethods.find(vm => m.Implementation == vm.name.replace("VariableMethod",""));
@@ -115,8 +115,8 @@ const variables = parseVariableConfiguration(config.get("variables"));
 const variableMethods = IVariableMethod.getImplementations();
 const implementedVariables = variablesWithDimensions(variables);
 
-variableMethods.map(v => { logger.info("Loaded method: " + v.name) })
-implementedVariables.map(v => { logger.info("Loaded variable: " + v.Name) })
+variableMethods.forEach(v => { logger.info("Loaded method: " + v.name) })
+implementedVariables.forEach(v => { logger.info("Loaded variable: " + v.Name) })
 
 export function listVariables () {
     return implementedVariables;
@@ -125,9 +125,9 @@ export function listVariables () {
 export function getDependencies (variableId:string, methodId:string) {
     const v = variables.find(m => m.Id == variableId);
     if (v) {
-        const m = v.Methods.find(m => m.Id == methodId);
-        if (m) {
-            return m.DependsOn;
+        const method = v.Methods.find(m => m.Id == methodId);
+        if (method) {
+            return method.DependsOn;
         }
     }
     return [];

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Header, Path, Post, Query, Route, SuccessResponse } from 'tsoa';
+import { Body, Controller, Get, Path, Post, Route } from 'tsoa';
 import { JobState, EcosetJobRequest } from '../types';
 import { stateCache, redisStateCache } from '../state-cache';
 import { queue } from '../queue';

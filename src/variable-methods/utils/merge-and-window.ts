@@ -1,8 +1,8 @@
 import fs from 'fs';
 import readline from 'readline';
-import winston, { stream } from 'winston';
+import winston from 'winston';
 import { runCommand } from './run-command';
-import { SimpleDate, PointWGS84, Time, Result } from "./../../api/types";
+import { PointWGS84, Time, Result } from "./../../api/types";
 import { timeSlices, temporalMatch } from './time-slices';
 
 type TwoWayMap<A,B> = {
@@ -99,13 +99,13 @@ function getTileFiles(tileList:string[],tileDir:string) {
     let tileFileList : string[] = [];
     for (var t in tileList) {
         const tileName = tileList[t];
-        const tileFileName = fs.readdirSync(tileDir + '/' + tileName.substring(0, 3) + '/').find(t => t.toLowerCase().endsWith(tileName + '.tif'));
+        const tileFileName = fs.readdirSync(tileDir + '/' + tileName.substring(0, 3) + '/').find(tile => tile.toLowerCase().endsWith(tileName + '.tif'));
         if (tileFileName) {
             tileFileList.push(tileDir + '/' + tileName.substring(0, 3) + '/' + tileFileName);
         } else {
             console.info("The following tile was missing: " + tileName);
-        };
-    };
+        }
+    }
     return tileFileList;
 }
 
@@ -152,11 +152,11 @@ export async function run(
     // Spawn Python process: MERGE
     let commandOpts = [__dirname + '/gdal_merge.py', '-init', noDataValue, '-a_nodata', noDataValue, '-o', outputFileTemplate + '_merged.tif' ]
     commandOpts = commandOpts.concat(overlappingTileFiles);
-    const outputMerge = await runCommand("python3", commandOpts, true, false);
+    await runCommand("python3", commandOpts, true, false);
 
     // Spawn GDAL process: WINDOW
     commandOpts = ['-of', 'gtiff', '-te', bufferedBounds.LonMin, bufferedBounds.LatMin, bufferedBounds.LonMax, bufferedBounds.LatMax, outputFileTemplate + '_merged.tif', outputFileTemplate + '.tif'];
-    const outputWindow = await runCommand("gdalwarp", commandOpts, true, false); 
+    await runCommand("gdalwarp", commandOpts, true, false); 
 
     // TODO Remove resolution / interpolation from here and place in seperate second transformation step
     commandOpts = ['-of', 'AAIGrid', outputFileTemplate + '.tif', outputFileTemplate + '.asc'];
@@ -171,7 +171,7 @@ export async function run(
             }
         }
     }
-    const output = await runCommand('gdal_translate', commandOpts, true, false);
+    await runCommand('gdal_translate', commandOpts, true, false);
 
     // Interpret output
     const outputInfo = await runCommand("gdalinfo", ['-json', '-stats', outputFileTemplate + '.tif'], true, false);
@@ -194,15 +194,15 @@ export async function run(
 
     // TODO Move this function to seperate filter / transform
     if (summaryOnly) {
-        let outputJsonString = JSON.stringify(outputJson);
-        fs.writeFileSync(outputFileTemplate + '_output.json', outputJsonString);
+        const json = JSON.stringify(outputJson);
+        fs.writeFileSync(outputFileTemplate + '_output.json', json);
         cleanIntermediates(outputFileTemplate);
         return { kind: "ok", result: undefined };    
     }
 
     // Write output with placeholder
     // NB Remove end of json object to insert data
-    let outputJsonString = JSON.stringify(outputJson);
+    const outputJsonString = JSON.stringify(outputJson);
     fs.writeFileSync(outputFileTemplate + '_output.json', outputJsonString.substring(0,outputJsonString.length - 3));
     fs.appendFileSync(outputFileTemplate + '_output.json', "{");
 
@@ -242,9 +242,10 @@ export async function run(
                     }
                     if (lineCount - startLine + 1 < nRows)
                         fs.appendFileSync(outputFileTemplate + "_output.json", JSON.stringify(lineData) + ',');
-                    else 
+                    else {
                         fs.appendFileSync(outputFileTemplate + "_output.json", JSON.stringify(lineData) + ']}}');
                         resolve();
+                    }
                 }
                 lineCount++;
             });
