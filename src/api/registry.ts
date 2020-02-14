@@ -35,7 +35,7 @@ let parseVariableConfiguration =
                 v.methods.map((m:any) => {
                     let methodKeys = Object.keys(m);
                     let methodName = methodKeys[0];
-                    let method = m[name];
+                    let method = m[methodName];
                     return {
                         Id: methodName,
                         FriendlyName: method.name,

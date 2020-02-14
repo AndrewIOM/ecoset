@@ -12,7 +12,7 @@ RUN apt-get install --yes build-essential
 
 # Install GDAL
 RUN apt-get install --yes software-properties-common
-RUN add-apt-repository ppa:ubuntugis/ubuntugis-unstable
+RUN add-apt-repository ppa:ubuntugis/ppa
 RUN apt-get update
 RUN apt-get install --yes gdal-bin python-gdal
 
@@ -35,5 +35,6 @@ RUN yarn install
 EXPOSE 5001:5002
 VOLUME /data
 VOLUME /output
+VOLUME /config
 
 CMD [ "yarn", "run", "prod" ]
