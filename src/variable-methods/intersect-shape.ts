@@ -1,4 +1,4 @@
-import { IVariableMethod, TemporalDimension, SlicedTime, PointWGS84, Time, Result } from "./../api/types"
+import { IVariableMethod, TemporalDimension, SlicedTime, PointWGS84, Time, Result, GeospatialForm } from "./../api/types"
 import { timeSlices, temporalMatch } from "./utils/time-slices";
 import { runCommand } from "./utils/run-command";
 import fs from 'fs';
@@ -42,7 +42,7 @@ class IntersectShapeVariableMethod {
 
     availableForSpace() { return true; }
 
-    computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) : Promise<Result<void, string>> {
+    computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) : Promise<Result<GeospatialForm, string>> {
         return cutShapefile(space, time, this.config.ShapefileDir, outputDir);
     }
 }
@@ -59,7 +59,7 @@ const validateConfig = (config:any) => {
     return c;
 }
 
-const cutShapefile = async (space:PointWGS84[], time:Time, shapefileDir:string, outputFileTemplate:string) : Promise<Result<void,string>> => {
+const cutShapefile = async (space:PointWGS84[], time:Time, shapefileDir:string, outputFileTemplate:string) : Promise<Result<GeospatialForm,string>> => {
 
     // 1. Find the shapefile for the time.
     const times = timeSlices(shapefileDir);
@@ -106,5 +106,5 @@ const cutShapefile = async (space:PointWGS84[], time:Time, shapefileDir:string, 
     // Remove temporary files
     try { fs.unlinkSync(temporaryFile) } catch (e) {}
 
-    return { kind: "ok", result: undefined };
+    return { kind: "ok", result: GeospatialForm.DataTable };
 }

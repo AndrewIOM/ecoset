@@ -24,12 +24,12 @@ function create() {
     return client;
 }
 
-function setJobState(cache:redis.RedisClient, jobId:number, state:JobState) {
-    return cache.set(jobId.toString(), state.toString());
+function setJobState(cache:redis.RedisClient, jobId:string, state:JobState) {
+    return cache.set(jobId, state.toString());
 }
 
-async function getJobState(cache:redis.RedisClient, jobId:number) : Promise<JobState> { 
-    if (!cache.exists(jobId.toString())) {
+async function getJobState(cache:redis.RedisClient, jobId:string) : Promise<JobState> { 
+    if (!cache.exists(jobId)) {
         return JobState.NonExistent;
     }
     let r = await getAsync(cache)(jobId.toString());
@@ -40,8 +40,8 @@ async function getJobState(cache:redis.RedisClient, jobId:number) : Promise<JobS
 
 export interface StateCache {
     create(): redis.RedisClient;
-    setState(cache:redis.RedisClient, jobId:number, state:JobState): boolean;
-    getState(cache:redis.RedisClient, jobId:number) : Promise<JobState>;
+    setState(cache:redis.RedisClient, jobId:string, state:JobState): boolean;
+    getState(cache:redis.RedisClient, jobId:string) : Promise<JobState>;
 }
 
 export const redisStateCache : StateCache = {

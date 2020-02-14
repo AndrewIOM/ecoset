@@ -72,11 +72,17 @@ export type TemporalDimension = SlicedTime | ContinuousTime
 
 // type ComputeResult = SummaryData | PointData | RasterData
 
+export enum GeospatialForm {
+    DataTable = "DataTable",
+    Points = "Points",
+    Raster = "Raster"
+}
+
 // Represents a computation function for a variable
 export interface IVariableMethod {
 
     // Runs computation for given spatial-temporal constraints and outputs to file.
-    computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) : Promise<Result<unit,string>>;
+    computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) : Promise<Result<GeospatialForm,string>>;
 
     // Returns the spatial dimensions for which computation can be conducted.
     spatialDimension() : PointWGS84[];
@@ -152,8 +158,5 @@ export interface EcosetJobRequest {
     LongitudeWest: number
     LongitudeEast: number
     TimeMode: Time
-    Year: number
-    Month: number
-    Day: number
-    Executables: Array<Variable>
+    Variables: Array<Variable>
 }

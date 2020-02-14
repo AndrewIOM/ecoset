@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
 import { logger } from './logger';
-import { EcosetJobRequest, PointWGS84, TemporalDimension, IVariableMethod, Result, JobState } from "./types";
+import { EcosetJobRequest, PointWGS84, TemporalDimension, IVariableMethod, Result, JobState, GeospatialForm } from "./types";
 import { listVariables, getDependencies } from "./registry";
 import { tryEstablishCache } from "./output-cache";
 import { redisStateCache, stateCache } from './state-cache';
@@ -84,7 +84,7 @@ const writeData = (fileReader:readline.Interface, finalOutputFile:string) => {
 }
 
 
-export async function processJob(job:EcosetJobRequest, jobId:number) : Promise<Result<void,string>> {
+export async function processJob(job:EcosetJobRequest, jobId:string) : Promise<Result<void,string>> {
 
     logger.info("Starting processing of analysis: " + JSON.stringify(job));
     redisStateCache.setState(stateCache, jobId, JobState.Processing);
@@ -95,7 +95,7 @@ export async function processJob(job:EcosetJobRequest, jobId:number) : Promise<R
     }
 
     const variablesToRun = 
-        job.Executables.map(vto => {
+        job.Variables.map(vto => {
             const v = variables.find(variable => variable.Id == vto.Name);
             if (v !== undefined) {
                 const m = v.Methods.find(method => method?.Id == vto.Method);
@@ -120,13 +120,13 @@ export async function processJob(job:EcosetJobRequest, jobId:number) : Promise<R
         orderedNodes.map(node => {
             const fileTemplate = cacheDir + node.Variable.Name + "_" + node.Variable.Method.Id;
             const v = node.Variable.Method.Imp.computeToFile(boundingBox, job.TimeMode, fileTemplate, node.Variable.Options);
-            return v;
+            return { Name: node.Variable.Name, Result: v };
         });
 
     // TODO Group nodes into levels to run using Promise.All
-    const runInSequence = async (functions: Promise<Result<void, string>>[]) => {
+    const runInSequence = async (functions: { Name: string; Result: Promise<Result<GeospatialForm, string>>; }[]) => {
         const allResults = [];
-        for (const fn of functions) { allResults.push(await fn); }
+        for (const fn of functions) { allResults.push({ Name: fn.Name, Result: await fn.Result }); }
         return allResults;
     }
 
@@ -135,7 +135,7 @@ export async function processJob(job:EcosetJobRequest, jobId:number) : Promise<R
         return x;
     });
 
-    if (results.find(r => r.kind == "failure")) {
+    if (results.find(r => r.Result.kind == "failure")) {
         return { kind: "failure", message: "There was an internal error with your analysis"};
     }
 
@@ -144,8 +144,20 @@ export async function processJob(job:EcosetJobRequest, jobId:number) : Promise<R
     // Merge all outputs into a single output (for sending all at once)
     const finalOutputFile = cacheDir + "/output.json";
     fs.writeFileSync(finalOutputFile, "{\"north\": " + job.LatitudeNorth + ",\"south\":" + job.LatitudeSouth + ",\"east\":" + job.LongitudeEast + ",\"west\":" + job.LongitudeWest + ",\"output\":[");
-    
+
     for (let index = 0; index < variablesToRun.length; index++) {
+
+        let outputFormat = "Unknown";
+        const runResult = results.find(r => r.Name == variablesToRun[index].Name);
+        if (runResult) {
+            switch (runResult.Result.kind) {
+                case "ok":
+                    outputFormat = runResult.Result.result;
+                    break;
+                case "failure":
+                    break;
+            }
+        }
 
         const variableResult = path.join(cacheDir, variablesToRun[index].Name + "_" + variablesToRun[index].Method.Id + "_output.json");
         logger.debug("File is: " + variableResult);
@@ -156,13 +168,12 @@ export async function processJob(job:EcosetJobRequest, jobId:number) : Promise<R
         }
         logger.info("Synthesising results: " + variablesToRun[index].Name + " - " + variablesToRun[index].Method.Id);
         fs.appendFileSync(finalOutputFile, "{ \"name\":\""
-            + variablesToRun[index].Name + "\",\"implementation\":\"" + variablesToRun[index].Method.Id
-            + "\",\"output_format\":\"" + "UNKNOWN" + "\",\"stat\":\""
-            + "UNKNOWN" + "\",\"data\":");
+            + variablesToRun[index].Name + "\",\"method_used\":\"" + variablesToRun[index].Method.Id
+            + "\",\"output_format\":\"" + outputFormat + "\",\"data\":");
 
         const fileReader = readline.createInterface( {input: fs.createReadStream(variableResult) });
-
         await writeData(fileReader, finalOutputFile);
+
         if (index < variablesToRun.length - 1) {
             fs.appendFileSync(finalOutputFile, "},");
         } else {

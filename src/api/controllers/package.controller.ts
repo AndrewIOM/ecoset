@@ -4,6 +4,7 @@ import { stateCache, redisStateCache } from '../state-cache';
 import { queue } from '../queue';
 import { listVariableDtos } from '../registry';
 import * as cache from '../output-cache';
+import uuidv4 from 'uuid/v4';
 
 @Route('Data')
 export class DataPackageController extends Controller {
@@ -15,8 +16,7 @@ export class DataPackageController extends Controller {
 
 		@Post('submit')
 		public async submit(@Body() jobRequest: EcosetJobRequest) {
-			let r = await queue.add(jobRequest);
-			
+			let r = await queue.add(jobRequest, { jobId: uuidv4() });
 			return r.id;
 		}
 

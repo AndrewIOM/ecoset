@@ -1,4 +1,4 @@
-import { IVariableMethod, PointWGS84, Result, Time, TemporalDimension } from "./../api/types"
+import { IVariableMethod, PointWGS84, Result, Time, TemporalDimension, GeospatialForm } from "./../api/types"
 import {Index, Entity, Connection, Column, PrimaryGeneratedColumn, getConnectionManager } from "typeorm";
 import fs from 'fs';
 import { polygon, buffer } from '@turf/turf';
@@ -102,7 +102,7 @@ const getTime = async (conn: Connection | undefined, gbifTable: string) : Promis
 }
 
 const count = async (conn: Connection | undefined, gbifTable: string,
-    gbifCoordTable: string, space:PointWGS84[], output:string) : Promise<Result<void,string>> => {
+    gbifCoordTable: string, space:PointWGS84[], output:string) : Promise<Result<GeospatialForm,string>> => {
 
     if (conn == undefined) {
         return { kind: "failure", message: "Could not connect to GBIF database" };
@@ -135,7 +135,7 @@ const count = async (conn: Connection | undefined, gbifTable: string,
     }).then(counts => {
         logger.info("Counted GBIF records successfully");
         fs.writeFileSync(output + "_output.json", JSON.stringify(counts));
-        return { kind: "ok", result: undefined };
+        return { kind: "ok", result: GeospatialForm.DataTable };
     })
 
 }

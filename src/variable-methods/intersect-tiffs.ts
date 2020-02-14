@@ -1,4 +1,4 @@
-import { IVariableMethod, TemporalDimension, SlicedTime, PointWGS84, Time, Result } from "./../api/types"
+import { IVariableMethod, TemporalDimension, SlicedTime, PointWGS84, Time, Result, GeospatialForm } from "./../api/types"
 import { getTimeSlices, run } from "./utils/merge-and-window";
 
 @IVariableMethod.register
@@ -37,7 +37,7 @@ class IntersectTiffsVariableMethod {
 
     availableForSpace() { return true; }
 
-    computeToFile(space:PointWGS84[],time:Time,outputDir:string,options?:any) : Promise<Result<void, string>> {
+    computeToFile(space:PointWGS84[],time:Time,outputDir:string,options?:any) : Promise<Result<GeospatialForm, string>> {
         const buffer = options == undefined ? 0 : options.buffer;
         const resolution = options == undefined ? undefined : options.resolution;
         const summaryOnly : boolean = options == undefined ? false : options.summarise;

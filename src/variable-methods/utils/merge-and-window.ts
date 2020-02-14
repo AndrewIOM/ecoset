@@ -2,7 +2,7 @@ import fs from 'fs';
 import readline from 'readline';
 import winston from 'winston';
 import { runCommand } from './run-command';
-import { PointWGS84, Time, Result } from "./../../api/types";
+import { PointWGS84, Time, Result, GeospatialForm } from "./../../api/types";
 import { timeSlices, temporalMatch } from './time-slices';
 
 type TwoWayMap<A,B> = {
@@ -124,7 +124,7 @@ export async function run(
     outputFileTemplate: string,
     summaryOnly:boolean,
     buffer?:number,
-    resolution?:number ) : Promise<Result<void,string>> {
+    resolution?:number ) : Promise<Result<GeospatialForm,string>> {
 
     const requestBounds = {
         LatMin: Math.min(... space.map(s => s.Latitude)),
@@ -197,7 +197,7 @@ export async function run(
         const json = JSON.stringify(outputJson);
         fs.writeFileSync(outputFileTemplate + '_output.json', json);
         cleanIntermediates(outputFileTemplate);
-        return { kind: "ok", result: undefined };    
+        return { kind: "ok", result: GeospatialForm.DataTable };    
     }
 
     // Write output with placeholder
@@ -256,5 +256,5 @@ export async function run(
     winston.info("Cached result to file.");
 
     cleanIntermediates(outputFileTemplate);
-    return { kind: "ok", result: undefined };
+    return { kind: "ok", result: GeospatialForm.Raster };
 }
