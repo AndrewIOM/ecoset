@@ -160,3 +160,15 @@ export interface EcosetJobRequest {
     TimeMode: Time
     Variables: Array<Variable>
 }
+
+export interface JobStatusResponse {
+    success: boolean
+    message: string
+    jobState: JobState
+}
+
+export interface JobSubmitResponse {
+    success: boolean
+    message: string
+    jobId: string
+}

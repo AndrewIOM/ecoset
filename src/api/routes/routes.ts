@@ -14,6 +14,26 @@ const models: TsoaRoute.Models = {
         "enums": ["NonExistent", "Queued", "Processing", "Ready", "Failed"],
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "JobStatusResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "success": { "dataType": "boolean", "required": true },
+            "message": { "dataType": "string", "required": true },
+            "jobState": { "ref": "JobState", "required": true },
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "JobSubmitResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "success": { "dataType": "boolean", "required": true },
+            "message": { "dataType": "string", "required": true },
+            "jobId": { "dataType": "string", "required": true },
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "Latest": {
         "dataType": "refObject",
         "properties": {
@@ -135,7 +155,7 @@ export function RegisterRoutes(app: express.Express) {
     app.get('/api/v1/Data/status/:packageId',
         function(request: any, response: any, next: any) {
             const args = {
-                packageId: { "in": "path", "name": "packageId", "required": true, "dataType": "double" },
+                packageId: { "in": "path", "name": "packageId", "required": true, "dataType": "string" },
             };
 
             // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
@@ -200,7 +220,7 @@ export function RegisterRoutes(app: express.Express) {
     app.get('/api/v1/Data/fetch/:packageId',
         function(request: any, response: any, next: any) {
             const args = {
-                packageId: { "in": "path", "name": "packageId", "required": true, "dataType": "double" },
+                packageId: { "in": "path", "name": "packageId", "required": true, "dataType": "string" },
             };
 
             // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa

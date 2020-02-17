@@ -11,13 +11,24 @@ type GbifConfig = {
     Database: string
     GbifTable: string
     GbifCoordTable: string
+    GbifOrgTable: string
+}
+
+enum GbifStatistic {
+    Count,
+    List
+}
+
+type GbifOptions = {
+    SubsampleCount: number
+    Statistic: GbifStatistic
 }
 
 const validateConfig = (config:any) => {
 
     if (config.host == null || config.username == null ||
         config.password == null || config.database == null ||
-        config.gbif_table == null || config.gbif_coord_table == null) 
+        config.gbif_table == null || config.gbif_org_table == null || config.gbif_coord_table == null) 
         throw Error("Database configuration was incomplete.");
 
     const c : GbifConfig = {
@@ -26,7 +37,8 @@ const validateConfig = (config:any) => {
         Password: config.password,
         Database: config.database,
         GbifTable: config.gbif_table,
-        GbifCoordTable: config.gbif_coord_table
+        GbifCoordTable: config.gbif_coord_table,
+        GbifOrgTable: config.gbif_org_table
     }
     return c;
 }
@@ -68,7 +80,8 @@ class GbifQueryVariableMethod {
     }
 
     async computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) {
-        return count(this.conn, this.config.GbifTable, this.config.GbifCoordTable, space, outputDir);
+        const validatedOptions = validateOptions(options);
+        return runQuery(this.conn, this.config.GbifTable, this.config.GbifOrgTable, this.config.GbifCoordTable, space, outputDir, validatedOptions);
      }
 
     spatialDimension() { return []; }
@@ -81,6 +94,17 @@ class GbifQueryVariableMethod {
     availableForDate() { return true; }
 
     availableForSpace() { return true; }
+}
+
+const validateOptions = (config:any) => {
+    let c : GbifOptions = {
+        SubsampleCount: 50000,
+        Statistic: GbifStatistic.List
+    }
+    if (config) {
+        if (config.statistic == "count") c.Statistic = GbifStatistic.Count
+    }
+    return c;
 }
 
 const getTime = async (conn: Connection | undefined, gbifTable: string) : Promise<TemporalDimension | undefined> => {
@@ -101,8 +125,8 @@ const getTime = async (conn: Connection | undefined, gbifTable: string) : Promis
     })
 }
 
-const count = async (conn: Connection | undefined, gbifTable: string,
-    gbifCoordTable: string, space:PointWGS84[], output:string) : Promise<Result<GeospatialForm,string>> => {
+const runQuery = async (conn: Connection | undefined, gbifTable: string, gbifOrgTable:string,
+    gbifCoordTable: string, space:PointWGS84[], output:string, options:GbifOptions) : Promise<Result<GeospatialForm,string>> => {
 
     if (conn == undefined) {
         return { kind: "failure", message: "Could not connect to GBIF database" };
@@ -118,22 +142,56 @@ const count = async (conn: Connection | undefined, gbifTable: string,
     wkt = wkt.substr(0, wkt.length - 1) + "))";
     logger.info("WKT is: " + wkt);
 
-    const query = 
-        `select taxonomicgroup as taxon, count(distinct gbif_species) as species, count(gbif_species) as count \
+    let query = "";
+    if (options.Statistic == GbifStatistic.List) {
+
+        logger.info("Counting GBIF species to determine subsampling strategy...");
+        const result = await conn.query(`select count(*) as count \
+            from ${gbifTable} m \
+            left join ${gbifCoordTable} c \
+            on m.gbif_gbifid=c.gbif_gbifid \
+            where gbif_species<>'' and \
+            ST_Contains(ST_GeomFromText('${wkt}'), c.coordinate);`)
+            .catch(err => {
+                logger.error("Could not process GBIF records. " + err);
+                return { kind: "failure", message: "Could not process GBIF records "};
+            });
+
+        logger.debug(result);
+
+        const count = Number.parseInt(result[0].count);
+        var limit = 50000;
+        var modskip = Math.ceil(count / limit);
+
+        logger.info("Subsampling " + limit + "/ " + count + " occurrences from GBIF data...");
+        query = `select gbif_genus as genus, gbif_species as species, gbif_decimallatitude as lat, gbif_decimallongitude as lon, gbif_kingdom as kingdom, gbif_class as class, gbif_institutioncode as institutionCode, taxonomicgroup as taxon, o.title as title \
+            from ${gbifTable} m \
+            left join ${gbifOrgTable} o \
+            on m.gbif_publishingorgkey=o.gbif_publishingorgkey \
+            left join ${gbifCoordTable} c \
+            on m.gbif_gbifid=c.gbif_gbifid \
+            where gbif_species<>'' and \
+            m.gbif_gbifid mod ${modskip} = 0 and \
+            ST_Contains(ST_GeomFromText('${wkt}'), c.coordinate) \ 
+            limit ${limit};`
+
+        } else {
+        query = `select taxonomicgroup as taxon, count(distinct gbif_species) as species, count(gbif_species) as count \
         from ${gbifTable} m \
         left join ${gbifCoordTable} c \
         on m.gbif_gbifid=c.gbif_gbifid \
         where gbif_species<>'' and \
         ST_Contains(ST_GeomFromText('${wkt}'), c.coordinate) \
         group by taxonomicgroup;`;
+    }
 
-    logger.info("Running GBIF query: " + query);
+    logger.debug("Running GBIF query: " + query);
 
     return await conn.query(query).catch(err => {
-        logger.error("Could not count GBIF records. " + err);
-        return { kind: "failure", message: "Could not count GBIF records "};
+        logger.error("Could not process GBIF records. " + err);
+        return { kind: "failure", message: "Could not process GBIF records "};
     }).then(counts => {
-        logger.info("Counted GBIF records successfully");
+        logger.info("Processed GBIF records successfully");
         fs.writeFileSync(output + "_output.json", JSON.stringify(counts));
         return { kind: "ok", result: GeospatialForm.DataTable };
     })
