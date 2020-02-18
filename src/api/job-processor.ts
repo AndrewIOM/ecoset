@@ -6,6 +6,7 @@ import { EcosetJobRequest, PointWGS84, TemporalDimension, IVariableMethod, Resul
 import { listVariables, getDependencies } from "./registry";
 import { tryEstablishCache } from "./output-cache";
 import { redisStateCache, stateCache } from './state-cache';
+import bull from 'bull';
 
 const variables = listVariables();
 
@@ -84,7 +85,7 @@ const writeData = (fileReader:readline.Interface, finalOutputFile:string) => {
 }
 
 
-export async function processJob(job:EcosetJobRequest, jobId:string) : Promise<Result<void,string>> {
+async function processJob(job:EcosetJobRequest, jobId:string) : Promise<Result<void,string>> {
 
     logger.info("Starting processing of analysis: " + JSON.stringify(job));
     redisStateCache.setState(stateCache, jobId, JobState.Processing);
@@ -116,27 +117,34 @@ export async function processJob(job:EcosetJobRequest, jobId:string) : Promise<R
     const nodes = variablesToRun.map(v => getNodeTree(v, variablesToRun));
     const orderedNodes = kahn(nodes);
 
-    const workloads = 
-        orderedNodes.map(node => {
-            const fileTemplate = cacheDir + node.Variable.Name + "_" + node.Variable.Method.Id;
-            const v = node.Variable.Method.Imp.computeToFile(boundingBox, job.TimeMode, fileTemplate, node.Variable.Options);
-            return { Name: node.Variable.Name, Result: v };
-        });
-
     // TODO Group nodes into levels to run using Promise.All
-    const runInSequence = async (functions: { Name: string; Result: Promise<Result<GeospatialForm, string>>; }[]) => {
-        const allResults = [];
-        for (const fn of functions) { allResults.push({ Name: fn.Name, Result: await fn.Result }); }
-        return allResults;
+    // Currently running in order sequentially.
+    interface ProcessingResult { Name: string; Result: Result<GeospatialForm, string>};
+    async function processThing (node:Node) : Promise<ProcessingResult> {
+        const fileTemplate = cacheDir + node.Variable.Name + "_" + node.Variable.Method.Id;
+        const v = await node.Variable.Method.Imp.computeToFile(boundingBox, job.TimeMode, fileTemplate, node.Variable.Options);
+        return { Name: node.Variable.Name, Result: v };
+    }
+    const results : ProcessingResult[] = 
+    await orderedNodes.map(processThing).reduce((promiseChain:Promise<ProcessingResult[]>, node) => {
+        return promiseChain.then((chainResults) => {
+                console.log(chainResults);
+                return node.then(currentResult => 
+                    [ ...chainResults, currentResult ]
+                )
+            })
+    }, Promise.resolve(new Array<ProcessingResult>()))
+    .then((arrayOfResults:ProcessingResult[]) => {
+        return arrayOfResults;
+    });
+    
+    if (results == undefined) {
+        return { kind: "failure", message: "Problem running analysis" };
     }
 
-    const results = await runInSequence(workloads).then(x => {
-        logger.info("All workloads completed");
-        return x;
-    });
-
-    if (results.find(r => r.Result.kind == "failure")) {
-        return { kind: "failure", message: "There was an internal error with your analysis"};
+    const failed = results.filter(r => r.Result.kind == "failure");
+    if (failed.length > 0) {
+        return { kind: "failure", message: "There was an internal error with your analysis: " + JSON.stringify(failed) };
     }
 
     logger.info("All workloads complete for analysis: " + jobId);
@@ -148,7 +156,10 @@ export async function processJob(job:EcosetJobRequest, jobId:string) : Promise<R
     for (let index = 0; index < variablesToRun.length; index++) {
 
         let outputFormat = "Unknown";
-        const runResult = results.find(r => r.Name == variablesToRun[index].Name);
+        const runResult : {
+            Name: string;
+            Result: Result<GeospatialForm, string>;
+        } | undefined = results.find(r => r.Name == variablesToRun[index].Name);
         if (runResult) {
             switch (runResult.Result.kind) {
                 case "ok":
@@ -184,4 +195,17 @@ export async function processJob(job:EcosetJobRequest, jobId:string) : Promise<R
     redisStateCache.setState(stateCache, jobId, JobState.Ready);
     logger.info("Analysis complete");
     return { kind: "ok", result: undefined };
+}
+
+export default async function (job:bull.Job<EcosetJobRequest>, done:any) {
+    const result = await processJob(job.data, job.id.toString());
+    switch ((result).kind) {
+        case "ok":
+            done();
+            break;
+        case "failure":
+            console.log("Failed with " + result.message);
+            done(new Error(result.message));
+            break;
+    }
 }

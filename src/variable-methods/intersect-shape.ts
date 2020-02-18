@@ -42,8 +42,8 @@ class IntersectShapeVariableMethod {
 
     availableForSpace() { return true; }
 
-    computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) : Promise<Result<GeospatialForm, string>> {
-        return cutShapefile(space, time, this.config.ShapefileDir, outputDir);
+    async computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) : Promise<Result<GeospatialForm, string>> {
+        return await cutShapefile(space, time, this.config.ShapefileDir, outputDir);
     }
 }
 
@@ -62,6 +62,7 @@ const validateConfig = (config:any) => {
 const cutShapefile = async (space:PointWGS84[], time:Time, shapefileDir:string, outputFileTemplate:string) : Promise<Result<GeospatialForm,string>> => {
 
     // 1. Find the shapefile for the time.
+    console.log("Starting shapefile intersection");
     const times = timeSlices(shapefileDir);
     const timeSlice = temporalMatch(times, time);
     if (timeSlice == undefined) {
@@ -105,6 +106,7 @@ const cutShapefile = async (space:PointWGS84[], time:Time, shapefileDir:string, 
 
     // Remove temporary files
     try { fs.unlinkSync(temporaryFile) } catch (e) {}
+    console.log("Finished shapefile intersection");
 
     return { kind: "ok", result: GeospatialForm.DataTable };
 }

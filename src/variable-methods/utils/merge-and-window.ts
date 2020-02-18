@@ -67,7 +67,10 @@ type Statistic = {
     StDev: number
 }
 
-const parseGdalInfo : ((o:string) => Statistic) = (output:string) => {
+const parseGdalInfo : ((o:string) => Statistic | undefined) = (output:string) => {
+    if (output.length == 0) {
+        return undefined;
+    }
     // Errors may be returned on first line, so skip.
     const rows = output.split('\n');
     if (rows[0].split(' ')[0] == "ERROR") {
@@ -79,7 +82,7 @@ const parseGdalInfo : ((o:string) => Statistic) = (output:string) => {
         Maximum: infoObj.bands[0].maximum,
         Mean: infoObj.bands[0].mean,
         StDev: infoObj.bands[0].stDev
-    }    
+    }
 }
 
 const cleanIntermediates = (outfile:string) => {
@@ -149,14 +152,22 @@ export async function run(
     const overlappingTiles = tilesInBounds(tileLookup, bufferedBounds);
     const overlappingTileFiles = getTileFiles(overlappingTiles, timeSlice.Slice);
 
+    if (overlappingTileFiles.length == 0) {
+        return { kind: "failure", message: "There was no data available." }
+    }
+
     // Spawn Python process: MERGE
     let commandOpts = [__dirname + '/gdal_merge.py', '-init', noDataValue, '-a_nodata', noDataValue, '-o', outputFileTemplate + '_merged.tif' ]
     commandOpts = commandOpts.concat(overlappingTileFiles);
-    await runCommand("python3", commandOpts, true, false);
+    await runCommand("python3", commandOpts, false, false).then(_ => {
+        winston.info("GDAL merge completed");
+    });
 
     // Spawn GDAL process: WINDOW
     commandOpts = ['-of', 'gtiff', '-te', bufferedBounds.LonMin, bufferedBounds.LatMin, bufferedBounds.LonMax, bufferedBounds.LatMax, outputFileTemplate + '_merged.tif', outputFileTemplate + '.tif'];
-    await runCommand("gdalwarp", commandOpts, true, false); 
+    await runCommand("gdalwarp", commandOpts, false, false).then(_ => {
+        winston.info("GDAL warp completed");
+    });
 
     // TODO Remove resolution / interpolation from here and place in seperate second transformation step
     commandOpts = ['-of', 'AAIGrid', outputFileTemplate + '.tif', outputFileTemplate + '.asc'];
@@ -171,11 +182,20 @@ export async function run(
             }
         }
     }
-    await runCommand('gdal_translate', commandOpts, true, false);
+    await runCommand('gdal_translate', commandOpts, false, false).then(o => {
+        winston.info("GDAL translate completed");
+    });
 
     // Interpret output
-    const outputInfo = await runCommand("gdalinfo", ['-json', '-stats', outputFileTemplate + '.tif'], true, false);
+    const outputInfo = await runCommand("gdalinfo", ['-json', '-stats', outputFileTemplate + '.tif'], false, false).then(o => {
+        winston.info("GDAL info completed");
+        return o;
+    });
+    
     const gdalInfo = parseGdalInfo(outputInfo);
+    if (gdalInfo == undefined) {
+        return { kind: "failure", message: "Could not compute summary statistics" };
+    }
 
     // Make json object with stream placeholder.
     const outputJson = {

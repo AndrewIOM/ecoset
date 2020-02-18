@@ -1,6 +1,5 @@
 import bull from 'bull';
 import { EcosetJobRequest } from "./types";
-import { processJob } from './job-processor';
 
 export const queue = new bull<EcosetJobRequest>('ecoset', {
     limiter: {
@@ -9,12 +8,4 @@ export const queue = new bull<EcosetJobRequest>('ecoset', {
     }
 });
 
-queue.process(async (job:bull.Job<EcosetJobRequest>) => {
-    const result = await processJob(job.data, job.id);
-    switch ((result).kind) {
-        case "ok":
-            return job.finished();
-        case "failure":
-            return job.moveToFailed({ message: result.message})
-    }
-});
+queue.process(__dirname + '/job-processor.ts');

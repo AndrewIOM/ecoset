@@ -37,11 +37,16 @@ class IntersectTiffsVariableMethod {
 
     availableForSpace() { return true; }
 
-    computeToFile(space:PointWGS84[],time:Time,outputDir:string,options?:any) : Promise<Result<GeospatialForm, string>> {
+    async computeToFile(space:PointWGS84[],time:Time,outputDir:string,options?:any) : Promise<Result<GeospatialForm, string>> {
         const buffer = options == undefined ? 0 : options.buffer;
         const resolution = options == undefined ? undefined : options.resolution;
         const summaryOnly : boolean = options == undefined ? false : options.summarise;
-        return run(space, time, this.config.TileDir, this.config.NoDataValue, outputDir, summaryOnly, buffer, resolution);
+        try {
+            return await run(space, time, this.config.TileDir, this.config.NoDataValue, outputDir, summaryOnly, buffer, resolution);
+        }
+        catch (e) {
+            return { kind: "failure", message: e } as Result<GeospatialForm, string>;
+        }
     }
 }
 

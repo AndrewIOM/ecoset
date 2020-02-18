@@ -18,7 +18,6 @@ export const timeSlices = (tileDir:string) => {
     const slices = new Map<SimpleDate,string>();
     const subdirectories = listSubDirectories(tileDir);
     subdirectories.forEach(subdir => {
-        console.log("Subdir is " + subdir);
         let yr:number, m:number, d:number;
         const parts = subdir.split('-');
         if (parts.length > 3) return;
