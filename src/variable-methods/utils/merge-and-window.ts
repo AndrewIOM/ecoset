@@ -236,9 +236,6 @@ export async function run(
     let startLine = -1;
     let lineCount = 0;
 
-    let scale = 1; //TODO Remove variable
-    let offset = 0; // TODO Remove variable
-
     const writeData = () => {
         return new Promise(resolve => {
             file.on('line', function(line) {
@@ -258,7 +255,7 @@ export async function run(
         
                     let lineData = (line.substr(1)).split(' ');
                     for (var i = 0; i < lineData.length; i++) {
-                        lineData[i] = (Math.round(scale * Number(lineData[i]) + offset)).toString();
+                        lineData[i] = (Math.round(Number(lineData[i]))).toString();
                     }
                     if (lineCount - startLine + 1 < nRows)
                         fs.appendFileSync(outputFileTemplate + "_output.json", JSON.stringify(lineData) + ',');

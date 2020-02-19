@@ -84,8 +84,9 @@ const writeData = (fileReader:readline.Interface, finalOutputFile:string) => {
     });
 }
 
+type UpdatePercent = (i:number) => void
 
-async function processJob(job:EcosetJobRequest, jobId:string) : Promise<Result<void,string>> {
+async function processJob(job:EcosetJobRequest, jobId:string, updatePercent:UpdatePercent) : Promise<Result<void,string>> {
 
     logger.info("Starting processing of analysis: " + JSON.stringify(job));
     redisStateCache.setState(stateCache, jobId, JobState.Processing);
@@ -119,10 +120,13 @@ async function processJob(job:EcosetJobRequest, jobId:string) : Promise<Result<v
 
     // TODO Group nodes into levels to run using Promise.All
     // Currently running in order sequentially.
+    let percentComplete = 0;
     interface ProcessingResult { Name: string; Result: Result<GeospatialForm, string>};
     async function processThing (node:Node) : Promise<ProcessingResult> {
         const fileTemplate = cacheDir + node.Variable.Name + "_" + node.Variable.Method.Id;
         const v = await node.Variable.Method.Imp.computeToFile(boundingBox, job.TimeMode, fileTemplate, node.Variable.Options);
+        percentComplete += (100. / orderedNodes.length);
+        updatePercent(percentComplete);
         return { Name: node.Variable.Name, Result: v };
     }
     const results : ProcessingResult[] = 
@@ -192,19 +196,19 @@ async function processJob(job:EcosetJobRequest, jobId:string) : Promise<Result<v
         }
     }
 
-    redisStateCache.setState(stateCache, jobId, JobState.Ready);
     logger.info("Analysis complete");
     return { kind: "ok", result: undefined };
 }
 
 export default async function (job:bull.Job<EcosetJobRequest>, done:any) {
-    const result = await processJob(job.data, job.id.toString());
+    const result = await processJob(job.data, job.id.toString(), i => job.progress(i));
     switch ((result).kind) {
         case "ok":
+            redisStateCache.setState(stateCache, job.id.toString(), JobState.Ready);
             done();
             break;
         case "failure":
-            console.log("Failed with " + result.message);
+            redisStateCache.setState(stateCache, job.id.toString(), JobState.Failed);
             done(new Error(result.message));
             break;
     }

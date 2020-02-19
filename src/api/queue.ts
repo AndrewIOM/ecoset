@@ -1,4 +1,5 @@
 import bull from 'bull';
+import fs from 'fs';
 import { EcosetJobRequest } from "./types";
 
 export const queue = new bull<EcosetJobRequest>('ecoset', {
@@ -8,4 +9,8 @@ export const queue = new bull<EcosetJobRequest>('ecoset', {
     }
 });
 
-queue.process(__dirname + '/job-processor.ts');
+if (fs.existsSync(__dirname + '/job-processor.ts')) {
+    queue.process(5, __dirname + '/job-processor.ts');
+} else {
+    queue.process(5, __dirname + '/job-processor.js');
+}
