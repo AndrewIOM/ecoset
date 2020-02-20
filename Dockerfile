@@ -33,8 +33,9 @@ WORKDIR /usr/src/app
 RUN yarn install
 
 EXPOSE 5001:5002
-VOLUME /data
-VOLUME /output
-VOLUME /config
+VOLUME /data/
+VOLUME /output/
+
+RUN yarn run tsoa:gen
 
 CMD [ "yarn", "run", "prod" ]

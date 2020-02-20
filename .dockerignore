@@ -2,3 +2,7 @@
 website/**
 docs/**
 .vscode
+src/config
+src/error.log
+src/combined.log
+src/api/dist/*

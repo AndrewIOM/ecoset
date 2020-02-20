@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  redis:
+    image: redis:latest
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+
+  ecoset:
+    volumes:
+      - /data:/data
+      - /output:/output
+      - "./src/config:/usr/src/app/config"
+
+  # gbifdb:
+  #   image: mysql
+  #   command: --default-authentication-plugin=mysql_native_password
+  #   restart: always
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: example

@@ -1,13 +1,14 @@
 version: '3'
 
 services:
-  ecoset1:
+  ecoset:
     build: .
     ports:
      - "5001"
      - "5002"
     links:
      - "redis"
+
   redis:
     image: redis:latest
     command: redis-server --appendonly yes
