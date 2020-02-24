@@ -62,12 +62,14 @@ export class GbifQueryVariableMethod {
             username: this.config.Username,
             password: this.config.Password,
             database: this.config.Database,
-            cache: true
+            cache: true,
+            connectTimeout : 60 * 60 * 1000,
+            acquireTimeout : 60 * 60 * 1000
         });
 
         this.conn.connect().then(c => {
             getTime(c, this.config.GbifTable).then(t => this.time = t );
-        }).catch(e => "Problem connecting")
+        }).catch(e => "Problem connecting to mysql server: " + e);
     }
 
     availableOutputTypes() {
@@ -80,6 +82,8 @@ export class GbifQueryVariableMethod {
             const result = await runQuery(c, this.config.GbifTable, this.config.GbifOrgTable, this.config.GbifCoordTable, space, outputDir, validatedOptions);
             await this.conn.close();
             return result;
+        }).catch(e => {
+            return { kind: "failure", message: e } as Result<GeospatialForm,string>
         })
      }
 
