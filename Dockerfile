@@ -14,7 +14,7 @@ RUN apt-get install --yes build-essential
 RUN apt-get install --yes software-properties-common
 RUN add-apt-repository ppa:ubuntugis/ppa
 RUN apt-get update
-RUN apt-get install --yes gdal-bin python-gdal
+RUN apt-get install --yes gdal-bin python3-gdal
 
 # Install yarn 1.2
 RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
@@ -37,5 +37,6 @@ VOLUME /data/
 VOLUME /output/
 
 RUN yarn run tsoa:gen
-
-CMD [ "yarn", "run", "prod" ]
+RUN yarn tsc
+RUN yarn run copy:assets
+CMD [ "yarn", "node", "./build/api/app.js" ]

@@ -130,13 +130,11 @@ async function processJob(job:EcosetJobRequest, jobId:string, updatePercent:Upda
         return { Name: node.Variable.Name, Result: v };
     }
     const results : ProcessingResult[] = 
-    await orderedNodes.map(processThing).reduce((promiseChain:Promise<ProcessingResult[]>, node) => {
-        return promiseChain.then((chainResults) => {
-                console.log(chainResults);
-                return node.then(currentResult => 
-                    [ ...chainResults, currentResult ]
-                )
-            })
+    await orderedNodes.map(processThing).reduce(async (promiseChain:Promise<ProcessingResult[]>, node) => {
+        const chainResults = await promiseChain;
+        console.log(chainResults);
+        const currentResult = await node;
+        return [...chainResults, currentResult];
     }, Promise.resolve(new Array<ProcessingResult>()))
     .then((arrayOfResults:ProcessingResult[]) => {
         return arrayOfResults;

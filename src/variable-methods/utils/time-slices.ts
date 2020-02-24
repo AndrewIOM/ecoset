@@ -16,6 +16,10 @@ const isValidDate = (year:number, month:number, day:number) => {
 // Parses subdirectories as time slices based on format YYYY-MM-DD
 export const timeSlices = (tileDir:string) => {
     const slices = new Map<SimpleDate,string>();
+    if (!fs.existsSync(tileDir)) {
+        winston.warn("The specified data location did not exist: " + tileDir);
+        return slices;
+    }
     const subdirectories = listSubDirectories(tileDir);
     subdirectories.forEach(subdir => {
         let yr:number, m:number, d:number;

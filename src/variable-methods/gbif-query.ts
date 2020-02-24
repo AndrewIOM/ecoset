@@ -1,5 +1,5 @@
 import { IVariableMethod, PointWGS84, Result, Time, TemporalDimension, GeospatialForm } from "./../api/types"
-import {Index, Entity, Connection, Column, PrimaryGeneratedColumn, getConnectionManager } from "typeorm";
+import {Index, Entity, Connection, Column, PrimaryGeneratedColumn, getConnectionManager, ConnectionManager } from "typeorm";
 import fs from 'fs';
 import { polygon, buffer } from '@turf/turf';
 import { logger } from "../api/logger";
@@ -48,13 +48,14 @@ export class GbifQueryVariableMethod {
 
     config: GbifConfig;
     time : TemporalDimension | undefined;
-    conn : Connection | undefined;
+    conn : Connection;
+    isConnecting: boolean;
 
     constructor(conf:any) {
+        this.isConnecting = false;
         this.config = (validateConfig(conf));
-
         const connectionManager = getConnectionManager();
-        const connection = connectionManager.create({
+        this.conn = connectionManager.create({
             type: "mysql",
             host: this.config.Host,
             port: 3306,
@@ -63,16 +64,16 @@ export class GbifQueryVariableMethod {
             database: this.config.Database,
             cache: true
         });
+    }
 
-        connection.connect()
-        .then(c => {
-            this.conn = c;
-            getTime(this.conn, this.config.GbifTable).then(t => this.time = t );
-        })
-        .catch(e => {
-            logger.error("Error connecting to GBIF database: " + e);
-        });
-
+    async ensureConnected() {
+        if (!this.conn.isConnected) {
+            this.isConnecting = true;
+            await this.conn.connect().catch(e => {
+                this.isConnecting = false;
+                logger.error("Error connecting to GBIF database: " + e);
+            });
+        }
     }
 
     availableOutputTypes() {
@@ -81,13 +82,17 @@ export class GbifQueryVariableMethod {
 
     async computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) {
         const validatedOptions = validateOptions(options);
-        return await runQuery(this.conn, this.config.GbifTable, this.config.GbifOrgTable, this.config.GbifCoordTable, space, outputDir, validatedOptions);
+        return await this.ensureConnected().then(_ =>
+            runQuery(this.conn, this.config.GbifTable, this.config.GbifOrgTable, this.config.GbifCoordTable, space, outputDir, validatedOptions));
      }
 
     spatialDimension() { return []; }
 
     temporalDimension() : TemporalDimension { 
         if (this.time) { return this.time; }
+        if (this.conn.isConnected) {
+            getTime(this.conn, this.config.GbifTable).then(t => this.time = t );
+        }
         return { kind: "timeExtent", minDate: { Year: 1980 }, maxDate: { Year: 2020 }}; 
     }
 
@@ -107,9 +112,9 @@ const validateOptions = (config:any) => {
     return c;
 }
 
-const getTime = async (conn: Connection | undefined, gbifTable: string) : Promise<TemporalDimension | undefined> => {
+const getTime = async (conn: Connection, gbifTable: string) : Promise<TemporalDimension | undefined> => {
 
-    if (conn == undefined) { return undefined; }
+    if (!conn.isConnected) { return undefined; }
     const query = `SELECT MIN(gbif_eventdate) as min, MAX(gbif_eventdate) as max from ${gbifTable}`;
     logger.info("Determining temporal extent of GBIF database...");
 
@@ -125,10 +130,10 @@ const getTime = async (conn: Connection | undefined, gbifTable: string) : Promis
     })
 }
 
-const runQuery = async (conn: Connection | undefined, gbifTable: string, gbifOrgTable:string,
+const runQuery = async (conn: Connection, gbifTable: string, gbifOrgTable:string,
     gbifCoordTable: string, space:PointWGS84[], output:string, options:GbifOptions) : Promise<Result<GeospatialForm,string>> => {
 
-    if (conn == undefined) {
+    if (!conn.isConnected) {
         return { kind: "failure", message: "Could not connect to GBIF database" };
     }
 

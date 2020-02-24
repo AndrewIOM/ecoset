@@ -50,8 +50,8 @@ const bufferBounds = (bounds:Bounds,buffer:number) => {
 
 const tilesInBounds = (tileLookup:TwoWayMap<string,string>,bounds:Bounds) => {
     let tiles = [];
-    for (var x = Math.floor(bounds.LonMin); x < Math.floor(bounds.LonMax); x++) {
-        for (var y = Math.floor(bounds.LatMin); y < Math.floor(bounds.LatMax); y++) {
+    for (var x = Math.floor(bounds.LonMin); x <= Math.floor(bounds.LonMax); x++) {
+        for (var y = Math.floor(bounds.LatMin); y <= Math.floor(bounds.LatMax); y++) {
             var tileName = tileLookup.Backward([x, (x + 1), y, (y + 1)].toString());
             if (tileName != undefined)
                 tiles.push(tileName);
@@ -107,10 +107,8 @@ function getTileFiles(tileList:string[],tileDir:string) {
             if (tileFileName) {
                 tileFileList.push(tileDir + '/' + tileName.substring(0, 3) + '/' + tileFileName);
             } else {
-                console.info("The following tile was missing: " + tileName);
+                winston.info("The following tile was missing: " + tileName);
             }
-        } else {
-            console.info("The following tiles are missing: " + tileName.substring(0, 3));
         }
     }
     return tileFileList;
@@ -274,6 +272,7 @@ export async function run(
     }
 
     await writeData();
+    file.close();
     winston.info("Cached result to file.");
 
     cleanIntermediates(outputFileTemplate);

@@ -22,7 +22,10 @@ export function runCommand(
         })
         exec.on("close", code => {
             if (output.length == 0) console.log("Command did not log output: " + command + opts.toString());
-            if (code != 0) return reject("Process ended with non-zero code");
+            if (code != 0) {
+                winston.warn("Process ended with non-zero code: " + command);
+                return reject("Process ended with non-zero code: " + command);
+            }
             return resolve(output);
         });
     });
