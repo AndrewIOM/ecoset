@@ -42,7 +42,7 @@ export class IntersectTiffsVariableMethod {
         const resolution = options == undefined ? undefined : options.resolution;
         const summaryOnly : boolean = options == undefined ? false : options.summarise;
         try {
-            return run(space, time, this.config.TileDir, this.config.NoDataValue, outputDir, summaryOnly, buffer, resolution);
+            return await run(space, time, this.config.TileDir, this.config.NoDataValue, outputDir, summaryOnly, buffer, resolution);
         }
         catch (e) {
             return { kind: "failure", message: e } as Result<GeospatialForm, string>;

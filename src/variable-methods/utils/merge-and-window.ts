@@ -102,11 +102,15 @@ function getTileFiles(tileList:string[],tileDir:string) {
     let tileFileList : string[] = [];
     for (var t in tileList) {
         const tileName = tileList[t];
-        const tileFileName = fs.readdirSync(tileDir + '/' + tileName.substring(0, 3) + '/').find(tile => tile.toLowerCase().endsWith(tileName + '.tif'));
-        if (tileFileName) {
-            tileFileList.push(tileDir + '/' + tileName.substring(0, 3) + '/' + tileFileName);
+        if (fs.existsSync(tileDir + '/' + tileName.substring(0, 3) + '/')) {
+            const tileFileName = fs.readdirSync(tileDir + '/' + tileName.substring(0, 3) + '/').find(tile => tile.toLowerCase().endsWith(tileName + '.tif'));
+            if (tileFileName) {
+                tileFileList.push(tileDir + '/' + tileName.substring(0, 3) + '/' + tileFileName);
+            } else {
+                console.info("The following tile was missing: " + tileName);
+            }
         } else {
-            console.info("The following tile was missing: " + tileName);
+            console.info("The following tiles are missing: " + tileName.substring(0, 3));
         }
     }
     return tileFileList;

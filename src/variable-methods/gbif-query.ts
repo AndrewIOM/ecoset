@@ -81,7 +81,7 @@ export class GbifQueryVariableMethod {
 
     async computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) {
         const validatedOptions = validateOptions(options);
-        return runQuery(this.conn, this.config.GbifTable, this.config.GbifOrgTable, this.config.GbifCoordTable, space, outputDir, validatedOptions);
+        return await runQuery(this.conn, this.config.GbifTable, this.config.GbifOrgTable, this.config.GbifCoordTable, space, outputDir, validatedOptions);
      }
 
     spatialDimension() { return []; }
