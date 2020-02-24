@@ -12,7 +12,7 @@
     "prod": "tsc && yarn run copy:assets && yarn node ./build/api/app.js",
     "tsc": "tsc",
     "tsoa:gen": "tsoa swagger && tsoa routes",
-    "copy:assets": "cp -rv 'api/dist' 'build/api/dist'"
+    "copy:assets": "cp -rv 'api/dist' 'build/api/dist' && cp 'variable-methods/utils/tiles.csv' 'build/variable-methods/utils/tiles.csv' && cp 'variable-methods/utils/gdal_merge.py' 'build/variable-methods/utils/gdal_merge.py'"
   },
   "dependencies": {
     "@turf/nearest-point-to-line": "^6.0.0",
