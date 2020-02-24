@@ -2,7 +2,7 @@ import { IVariableMethod, TemporalDimension, SlicedTime, PointWGS84, Time, Resul
 import { getTimeSlices, run } from "./utils/merge-and-window";
 
 @IVariableMethod.register
-class IntersectTiffsVariableMethod {
+export class IntersectTiffsVariableMethod {
 
     private config : IntersectTiffConfig;
 
@@ -42,7 +42,7 @@ class IntersectTiffsVariableMethod {
         const resolution = options == undefined ? undefined : options.resolution;
         const summaryOnly : boolean = options == undefined ? false : options.summarise;
         try {
-            return await run(space, time, this.config.TileDir, this.config.NoDataValue, outputDir, summaryOnly, buffer, resolution);
+            return run(space, time, this.config.TileDir, this.config.NoDataValue, outputDir, summaryOnly, buffer, resolution);
         }
         catch (e) {
             return { kind: "failure", message: e } as Result<GeospatialForm, string>;

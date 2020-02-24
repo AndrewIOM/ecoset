@@ -7,7 +7,7 @@ import path from 'path';
 import winston = require("winston");
 
 @IVariableMethod.register
-class IntersectShapeVariableMethod {
+export class IntersectShapeVariableMethod {
 
     private config : IntersectShapeConfig;
 
@@ -43,7 +43,7 @@ class IntersectShapeVariableMethod {
     availableForSpace() { return true; }
 
     async computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) : Promise<Result<GeospatialForm, string>> {
-        return await cutShapefile(space, time, this.config.ShapefileDir, outputDir);
+        return cutShapefile(space, time, this.config.ShapefileDir, outputDir);
     }
 }
 

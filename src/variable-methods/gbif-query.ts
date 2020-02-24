@@ -44,7 +44,7 @@ const validateConfig = (config:any) => {
 }
 
 @IVariableMethod.register
-class GbifQueryVariableMethod {
+export class GbifQueryVariableMethod {
 
     config: GbifConfig;
     time : TemporalDimension | undefined;
