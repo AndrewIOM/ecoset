@@ -76,9 +76,14 @@ export class GbifQueryVariableMethod {
         return [ "list" ];
     }
 
+    tryConnect = async () => {
+        if (this.conn.isConnected) return this.conn;
+        return await this.conn.connect();
+    }
+
     async computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) {
         const validatedOptions = validateOptions(options);
-        return await this.conn.connect().then(async c => {
+        return await this.tryConnect().then(async c => {
             const result = await runQuery(c, this.config.GbifTable, this.config.GbifOrgTable, this.config.GbifCoordTable, space, outputDir, validatedOptions);
             await this.conn.close();
             return result;
