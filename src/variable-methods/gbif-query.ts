@@ -64,16 +64,10 @@ export class GbifQueryVariableMethod {
             database: this.config.Database,
             cache: true
         });
-    }
 
-    async ensureConnected() {
-        if (!this.conn.isConnected) {
-            this.isConnecting = true;
-            await this.conn.connect().catch(e => {
-                this.isConnecting = false;
-                logger.error("Error connecting to GBIF database: " + e);
-            });
-        }
+        this.conn.connect().then(c => {
+            getTime(c, this.config.GbifTable).then(t => this.time = t );
+        }).catch(e => "Problem connecting")
     }
 
     availableOutputTypes() {
@@ -82,17 +76,17 @@ export class GbifQueryVariableMethod {
 
     async computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) {
         const validatedOptions = validateOptions(options);
-        return await this.ensureConnected().then(_ =>
-            runQuery(this.conn, this.config.GbifTable, this.config.GbifOrgTable, this.config.GbifCoordTable, space, outputDir, validatedOptions));
+        return await this.conn.connect().then(async c => {
+            const result = await runQuery(c, this.config.GbifTable, this.config.GbifOrgTable, this.config.GbifCoordTable, space, outputDir, validatedOptions);
+            await this.conn.close();
+            return result;
+        })
      }
 
     spatialDimension() { return []; }
 
     temporalDimension() : TemporalDimension { 
         if (this.time) { return this.time; }
-        if (this.conn.isConnected) {
-            getTime(this.conn, this.config.GbifTable).then(t => this.time = t );
-        }
         return { kind: "timeExtent", minDate: { Year: 1980 }, maxDate: { Year: 2020 }}; 
     }
 
