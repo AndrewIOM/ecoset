@@ -215,7 +215,7 @@ export async function run(
     };
 
     // TODO Move this function to seperate filter / transform
-    if (summaryOnly) {
+    if (summaryOnly == true) {
         const json = JSON.stringify(outputJson);
         fs.writeFileSync(outputFileTemplate + '_output.json', json);
         cleanIntermediates(outputFileTemplate);

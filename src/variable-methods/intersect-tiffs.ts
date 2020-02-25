@@ -37,9 +37,16 @@ export class IntersectTiffsVariableMethod {
 
     availableForSpace() { return true; }
 
+    getNumber(value:any) : number | undefined {
+        const t = typeof value;
+        if (t == "string") return isNaN(parseFloat(value)) ? undefined : parseFloat(value);
+        if (t == "number") return value;
+        return undefined;
+    }
+
     async computeToFile(space:PointWGS84[],time:Time,outputDir:string,options?:any) : Promise<Result<GeospatialForm, string>> {
-        const buffer = options == undefined ? 0 : options.buffer;
-        const resolution = options == undefined ? undefined : options.resolution;
+        const buffer = options == undefined ? 0 : this.getNumber(options.buffer);
+        const resolution = options == undefined ? undefined : this.getNumber(options.resolution);
         const summaryOnly : boolean = options == undefined ? false : options.summarise;
         try {
             return await run(space, time, this.config.TileDir, this.config.NoDataValue, outputDir, summaryOnly, buffer, resolution);
