@@ -9,8 +9,9 @@ services:
 
   ecoset:
     volumes:
-      - /data:/data
-      - /output:/output
+      - C:/data/vnext:/data
+      - ./output:/output
+      - ./logs:/logs
       - "./src/config:/usr/src/app/config"
 
   # gbifdb:

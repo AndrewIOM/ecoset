@@ -84,9 +84,16 @@ const writeData = (fileReader:readline.Interface, finalOutputFile:string) => {
     });
 }
 
-type UpdatePercent = (i:number) => void
+type UpdatePercent = (i:number) => void;
+interface ProcessingResult { Name: string; Result: Result<GeospatialForm, string>};
 
-async function processJob(job:EcosetJobRequest, jobId:string, updatePercent:UpdatePercent) : Promise<Result<void,string>> {
+const promiseMap = (inputValues: Node[], mapper:((n:Node) => Promise<ProcessingResult>)) => {
+    const reducer = (acc$: Promise<ProcessingResult[]>, inputValue: Node) =>
+        acc$.then(acc => mapper(inputValue).then(result => { acc.push(result); return acc }));
+    return inputValues.reduce(reducer, Promise.resolve([]));
+}
+
+const processJob = async (job:EcosetJobRequest, jobId:string, updatePercent:UpdatePercent) : Promise<Result<void,string>> => {
 
     logger.info("Starting processing of analysis: " + JSON.stringify(job));
     redisStateCache.setState(stateCache, jobId, JobState.Processing);
@@ -120,28 +127,22 @@ async function processJob(job:EcosetJobRequest, jobId:string, updatePercent:Upda
 
     // TODO Group nodes into levels to run using Promise.All
     // Currently running in order sequentially.
-    let percentComplete = 0;
-    interface ProcessingResult { Name: string; Result: Result<GeospatialForm, string>};
-    async function processThing (node:Node) : Promise<ProcessingResult> {
+    let completeCount = 0;
+    const processThing = async (node:Node) : Promise<ProcessingResult> => {
         const fileTemplate = cacheDir + node.Variable.Name + "_" + node.Variable.Method.Id;
         const v = await node.Variable.Method.Imp.computeToFile(boundingBox, job.TimeMode, fileTemplate, node.Variable.Options);
-        percentComplete += (100. / orderedNodes.length);
-        updatePercent(percentComplete);
+        completeCount ++;
+        updatePercent(Math.round((completeCount / orderedNodes.length) * 100));
         return { Name: node.Variable.Name, Result: v };
     }
-    const results : ProcessingResult[] = 
-    await orderedNodes.map(processThing).reduce(async (promiseChain:Promise<ProcessingResult[]>, node) => {
-        const chainResults = await promiseChain;
-        console.log(chainResults);
-        const currentResult = await node;
-        return [...chainResults, currentResult];
-    }, Promise.resolve(new Array<ProcessingResult>()))
-    .then((arrayOfResults:ProcessingResult[]) => {
-        return arrayOfResults;
-    });
-    
+
+    const results = await promiseMap(orderedNodes, processThing).catch(e => {
+        logger.error("There was a problem running the stated variables and methods. The error was: " + e);
+        return undefined;
+    })
+
     if (results == undefined) {
-        return { kind: "failure", message: "Problem running analysis" };
+        return { kind: "failure", message: "There was an internal error when running the analysis." };
     }
 
     const failed = results.filter(r => r.Result.kind == "failure");

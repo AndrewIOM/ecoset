@@ -1,9 +1,9 @@
 import fs from 'fs';
 import readline from 'readline';
-import winston from 'winston';
 import { runCommand } from './run-command';
 import { PointWGS84, Time, Result, GeospatialForm } from "./../../api/types";
 import { timeSlices, temporalMatch } from './time-slices';
+import { logger } from '../../api/logger';
 
 type TwoWayMap<A,B> = {
     Forward: (arg:A) => (B | undefined),
@@ -107,7 +107,7 @@ function getTileFiles(tileList:string[],tileDir:string) {
             if (tileFileName) {
                 tileFileList.push(tileDir + '/' + tileName.substring(0, 3) + '/' + tileFileName);
             } else {
-                winston.info("The following tile was missing: " + tileName);
+                logger.info("The following tile was missing: " + tileName);
             }
         }
     }
@@ -141,11 +141,11 @@ export async function run(
     const times = timeSlices(tiledir);
     const timeSlice = temporalMatch(times, time);
     if (timeSlice == undefined) {
-        winston.warn("There were no time slices that met the criteria");
+        logger.warn("There were no time slices that met the criteria");
         return { kind: "failure", message: "There were no time slices that met the criteria" };
     }
     if (timeSlice.Slice == undefined) {
-        winston.warn("There were no time slices that met the criteria");
+        logger.warn("There were no time slices that met the criteria");
         return { kind: "failure", message: "There were no time slices that met the criteria" };
     }
 
@@ -162,20 +162,20 @@ export async function run(
     let commandOpts = [__dirname + '/gdal_merge.py', '-init', noDataValue, '-a_nodata', noDataValue, '-o', outputFileTemplate + '_merged.tif' ]
     commandOpts = commandOpts.concat(overlappingTileFiles);
     await runCommand("python3", commandOpts, false, false).then(_ => {
-        winston.info("GDAL merge completed");
+        logger.info("GDAL merge completed");
     });
 
     // Spawn GDAL process: WINDOW
     commandOpts = ['-of', 'gtiff', '-te', bufferedBounds.LonMin, bufferedBounds.LatMin, bufferedBounds.LonMax, bufferedBounds.LatMax, outputFileTemplate + '_merged.tif', outputFileTemplate + '.tif'];
     await runCommand("gdalwarp", commandOpts, false, false).then(_ => {
-        winston.info("GDAL warp completed");
+        logger.info("GDAL warp completed");
     });
 
     // TODO Remove resolution / interpolation from here and place in seperate second transformation step
     commandOpts = ['-of', 'AAIGrid', outputFileTemplate + '.tif', outputFileTemplate + '.asc'];
     if (resolution) {
         if (resolution > 1) {
-            winston.info("Reducing output size to " + resolution + " maximum pixels");
+            logger.info("Reducing output size to " + resolution + " maximum pixels");
             const scaleFactor = (bufferedBounds.LonMax - bufferedBounds.LonMin) / (bufferedBounds.LatMax - bufferedBounds.LatMin);
             if (scaleFactor > 1) {
                 commandOpts = ['-outsize', resolution, Math.round(resolution / scaleFactor)].concat(commandOpts);
@@ -185,12 +185,12 @@ export async function run(
         }
     }
     await runCommand('gdal_translate', commandOpts, false, false).then(o => {
-        winston.info("GDAL translate completed");
+        logger.info("GDAL translate completed");
     });
 
     // Interpret output
     const outputInfo = await runCommand("gdalinfo", ['-json', '-stats', outputFileTemplate + '.tif'], false, false).then(o => {
-        winston.info("GDAL info completed");
+        logger.info("GDAL info completed");
         return o;
     });
     
@@ -240,7 +240,7 @@ export async function run(
 
     const writeData = () => {
         return new Promise(resolve => {
-            file.on('line', function(line) {
+            file.on('line', line => {
                 const lineSplit = line.split(' ');
                 if (lineSplit[0] == 'ncols') {
                     fs.appendFileSync(outputFileTemplate + "_output.json", '"ncols":' + lineSplit.pop() + ',');
@@ -263,18 +263,23 @@ export async function run(
                         fs.appendFileSync(outputFileTemplate + "_output.json", JSON.stringify(lineData) + ',');
                     else {
                         fs.appendFileSync(outputFileTemplate + "_output.json", JSON.stringify(lineData) + ']}}');
-                        resolve();
                     }
                 }
                 lineCount++;
+            }).on("close", () => {
+                resolve();
             });
         });
     }
 
-    await writeData();
-    file.close();
-    winston.info("Cached result to file.");
+    await writeData().then(_ => {
+        logger.info("Cached result to file.");
+        cleanIntermediates(outputFileTemplate);
+    }).catch(e => {
+        logger.warn("Could not cache output of tile merge. The error was: " + e);
+        return { kind: "failure", result: "Could not cache output. The error was: " + e };
+    })
 
-    cleanIntermediates(outputFileTemplate);
     return { kind: "ok", result: GeospatialForm.Raster };
+
 }

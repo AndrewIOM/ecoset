@@ -25,6 +25,7 @@ RUN apt-get install --yes yarn
 # Setup Directories
 RUN mkdir -p /data
 RUN mkdir -p /output
+RUN mkdir -p /logs
 
 RUN mkdir -p /usr/src/app
 ADD ./src /usr/src/app

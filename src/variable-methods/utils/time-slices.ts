@@ -1,6 +1,6 @@
-import winston = require("winston");
 import fs from 'fs';
 import { SimpleDate, Time } from "../../api/types";
+import { logger } from '../../api/logger';
 
 const listSubDirectories = (path:string) => {
     return fs.readdirSync(path).filter(file => {
@@ -17,7 +17,7 @@ const isValidDate = (year:number, month:number, day:number) => {
 export const timeSlices = (tileDir:string) => {
     const slices = new Map<SimpleDate,string>();
     if (!fs.existsSync(tileDir)) {
-        winston.warn("The specified data location did not exist: " + tileDir);
+        logger.warn("The specified data location did not exist: " + tileDir);
         return slices;
     }
     const subdirectories = listSubDirectories(tileDir);
@@ -45,7 +45,7 @@ export const timeSlices = (tileDir:string) => {
             } 
         }
     });
-    winston.debug("Time slices: " + JSON.stringify(slices));
+    logger.debug("Time slices: " + JSON.stringify(slices));
     return slices;
 }
 
