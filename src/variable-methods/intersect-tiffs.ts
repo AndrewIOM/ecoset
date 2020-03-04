@@ -49,7 +49,7 @@ export class IntersectTiffsVariableMethod {
         const resolution = options == undefined ? undefined : this.getNumber(options.resolution);
         const summaryOnly : boolean = options == undefined ? false : options.summarise;
         try {
-            return await run(space, time, this.config.TileDir, this.config.NoDataValue, outputDir, summaryOnly, buffer, resolution);
+            return await run(space, time, this.config.TileDir, this.config.NoDataValue, this.config.ScaleFactor, outputDir, summaryOnly, buffer, resolution);
         }
         catch (e) {
             return { kind: "failure", message: e } as Result<GeospatialForm, string>;
@@ -60,6 +60,7 @@ export class IntersectTiffsVariableMethod {
 type IntersectTiffConfig = {
     TileDir: string,
     NoDataValue: number
+    ScaleFactor: number | undefined
 }
 
 const validateConfig = (config:any) => {
@@ -69,7 +70,8 @@ const validateConfig = (config:any) => {
 
     const c : IntersectTiffConfig = {
         TileDir: config.tiledir,
-        NoDataValue: Number(config.nodata)
+        NoDataValue: parseFloat(config.nodata),
+        ScaleFactor: config.scalefactor == undefined ? undefined : parseFloat(config.scalefactor)
     }
     return c;
 }

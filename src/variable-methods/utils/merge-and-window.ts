@@ -67,22 +67,33 @@ type Statistic = {
     StDev: number
 }
 
-const parseGdalInfo : ((o:string) => Statistic | undefined) = (output:string) => {
+const parseGdalInfo : ((o:string,scaleFactor:number) => Statistic | undefined) = (output:string,scaleFactor:number) => {
     if (output.length == 0) {
         return undefined;
     }
-    // Errors may be returned on first line, so skip.
     const rows = output.split('\n');
     if (rows[0].split(' ')[0] == "ERROR") {
         rows.splice(0, 1);
     }
     const infoObj = JSON.parse(rows.join('\n'));
     return {
-        Minimum: infoObj.bands[0].minimum,
-        Maximum: infoObj.bands[0].maximum,
-        Mean: infoObj.bands[0].mean,
-        StDev: infoObj.bands[0].stDev
+        Minimum: infoObj.bands[0].minimum * scaleFactor,
+        Maximum: infoObj.bands[0].maximum * scaleFactor,
+        Mean: infoObj.bands[0].mean * scaleFactor,
+        StDev: infoObj.bands[0].stdDev * scaleFactor
     }
+}
+
+const getTiffPixelSize = (output:string) => {
+    if (output.length == 0) {
+        return undefined;
+    }
+    const rows = output.split('\n');
+    if (rows[0].split(' ')[0] == "ERROR") {
+        rows.splice(0, 1);
+    }
+    const infoObj = JSON.parse(rows.join('\n'));
+    return [ infoObj.size[0] as number, infoObj.size[1] as number ];
 }
 
 const cleanIntermediates = (outfile:string) => {
@@ -126,6 +137,7 @@ export async function run(
     time:Time,
     tiledir:string, 
     noDataValue:number,
+    scaleFactor:number | undefined,
     outputFileTemplate: string,
     summaryOnly:boolean,
     buffer?:number,
@@ -158,6 +170,10 @@ export async function run(
         return { kind: "failure", message: "There was no data available." }
     }
 
+    // Take account of linear scales used when storing data into tiff files
+    const valueScaleFactor = scaleFactor == undefined || scaleFactor == NaN ? 1 : scaleFactor;
+    logger.info("Scaling raster values by a factor of: " + valueScaleFactor);
+
     // Spawn Python process: MERGE
     let commandOpts = [__dirname + '/gdal_merge.py', '-init', noDataValue, '-a_nodata', noDataValue, '-o', outputFileTemplate + '_merged.tif' ]
     commandOpts = commandOpts.concat(overlappingTileFiles);
@@ -171,33 +187,35 @@ export async function run(
         logger.info("GDAL warp completed");
     });
 
-    // TODO Remove resolution / interpolation from here and place in seperate second transformation step
+    // Calculate statistics
+    const outputInfo = await runCommand("gdalinfo", ['-json', '-stats', outputFileTemplate + '.tif'], false, false).then(o => {
+        logger.info("GDAL info completed");
+        return o;
+    });
+    
+    const gdalInfo = parseGdalInfo(outputInfo, valueScaleFactor);
+    const outputSize = getTiffPixelSize(outputInfo);
+    logger.info("Actual data col/row is: " + JSON.stringify(outputSize));
+    if (gdalInfo == undefined || outputSize == undefined) {
+        return { kind: "failure", message: "Could not compute summary statistics" };
+    }
+
     commandOpts = ['-of', 'AAIGrid', outputFileTemplate + '.tif', outputFileTemplate + '.asc'];
     if (resolution) {
-        if (resolution > 1) {
+        if (resolution > 1 && resolution != NaN && (resolution < outputSize[0] || resolution < outputSize[1])) {
+            // TODO Remove resolution / interpolation from here and place in seperate second transformation step
             logger.info("Reducing output size to " + resolution + " maximum pixels");
-            const scaleFactor = (bufferedBounds.LonMax - bufferedBounds.LonMin) / (bufferedBounds.LatMax - bufferedBounds.LatMin);
-            if (scaleFactor > 1) {
-                commandOpts = ['-outsize', resolution, Math.round(resolution / scaleFactor)].concat(commandOpts);
+            const resScaleFactor = (bufferedBounds.LonMax - bufferedBounds.LonMin) / (bufferedBounds.LatMax - bufferedBounds.LatMin);
+            if (resScaleFactor > 1) {
+                commandOpts = ['-outsize', resolution, Math.round(resolution / resScaleFactor)].concat(commandOpts);
             } else {
-                commandOpts = ['-outsize', Math.round(resolution * scaleFactor), resolution].concat(commandOpts);
+                commandOpts = ['-outsize', Math.round(resolution * resScaleFactor), resolution].concat(commandOpts);
             }
         }
     }
     await runCommand('gdal_translate', commandOpts, false, false).then(o => {
         logger.info("GDAL translate completed");
     });
-
-    // Interpret output
-    const outputInfo = await runCommand("gdalinfo", ['-json', '-stats', outputFileTemplate + '.tif'], false, false).then(o => {
-        logger.info("GDAL info completed");
-        return o;
-    });
-    
-    const gdalInfo = parseGdalInfo(outputInfo);
-    if (gdalInfo == undefined) {
-        return { kind: "failure", message: "Could not compute summary statistics" };
-    }
 
     // Make json object with stream placeholder.
     const outputJson = {
@@ -257,7 +275,12 @@ export async function run(
         
                     let lineData = (line.substr(1)).split(' ');
                     for (var i = 0; i < lineData.length; i++) {
-                        lineData[i] = (Math.round(Number(lineData[i]))).toString();
+                        const v = Number(lineData[i]);
+                        if (v != noDataValue) {
+                            lineData[i] = (v * valueScaleFactor).toString();
+                        } else {
+                            lineData[i] = NaN.toString();
+                        }
                     }
                     if (lineCount - startLine + 1 < nRows)
                         fs.appendFileSync(outputFileTemplate + "_output.json", JSON.stringify(lineData) + ',');
