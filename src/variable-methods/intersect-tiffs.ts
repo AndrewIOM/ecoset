@@ -44,10 +44,17 @@ export class IntersectTiffsVariableMethod {
         return undefined;
     }
 
+    getBool(value:any) : boolean {
+        const t = typeof value;
+        if (t == "string") return value.toLowerCase() == "true";
+        if (t == "boolean") return value;
+        return false;
+    }
+
     async computeToFile(space:PointWGS84[],time:Time,outputDir:string,options?:any) : Promise<Result<GeospatialForm, string>> {
         const buffer = options == undefined ? 0 : this.getNumber(options.buffer);
         const resolution = options == undefined ? undefined : this.getNumber(options.resolution);
-        const summaryOnly : boolean = options == undefined ? false : options.summarise;
+        const summaryOnly : boolean = options == undefined ? false : this.getBool(options.summarise);
         try {
             return await run(space, time, this.config.TileDir, this.config.NoDataValue, this.config.ScaleFactor, outputDir, summaryOnly, buffer, resolution);
         }
