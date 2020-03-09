@@ -165,30 +165,27 @@ const aggregate = async (expression:expr.Expression, required:string[], dependen
     }
 
     logger.info("Evaluating fully-parameterised equation");
+    const outputCube = output.map(r => r.map(x => x.evaluate() as number));
+
+    logger.info("Calculating summary statistics");
     const outputJson = {
         dimensions: dims[0].Dimensions,
-        summary: { Mean: 0, Maximum: 0, Minimum: 0, StDev: 0 },
+        summary: {
+            Mean: average(outputCube),
+            Maximum: getMax(outputCube),
+            Minimum: getMin(outputCube),
+            StDev: stdDev(outputCube).pop() as number
+        },
         data: {
             ncols: cols,
             nrows: rows,
-            raw: output.map(r => {
-                return r.map(x => x.evaluate() as number).map(x => typeof x != "number" || x == null ? NaN : x);
-            })
+            raw: outputCube.map(r => r.map(x => x == null ? NaN.toString() : x.toString()))
         }
     };
-
-    logger.info("Calculating summary statistics");
-    outputJson.summary = {
-        Mean: average(outputJson.data.raw),
-        Maximum: getMax(outputJson.data.raw),
-        Minimum: getMin(outputJson.data.raw),
-        StDev: stdDev(outputJson.data.raw).pop() as number
-    }
 
     logger.info("Caching computed equation data to file");
     const outputFile = outputFileTemplate + "_output.json";
     fs.writeFileSync(outputFile, JSON.stringify(outputJson));
-
     return { kind: "ok", result: GeospatialForm.Raster };    
 
     //const outputStream = fs.createWriteStream(outputFileTemplate + "_output.json");
