@@ -141,7 +141,8 @@ export async function run(
     outputFileTemplate: string,
     summaryOnly:boolean,
     buffer?:number,
-    resolution?:number ) : Promise<Result<GeospatialForm,string>> {
+    resolution?:number,
+    maxResolution?: number ) : Promise<Result<GeospatialForm,string>> {
 
     const requestBounds = {
         LatMin: Math.min(... space.map(s => s.Latitude)),
@@ -201,8 +202,13 @@ export async function run(
     }
 
     commandOpts = ['-of', 'AAIGrid', outputFileTemplate + '.tif', outputFileTemplate + '.asc'];
+    if (maxResolution) {
+        if ((maxResolution < outputSize[0] || maxResolution < outputSize[1])) {
+            resolution = maxResolution;
+        }
+    }
     if (resolution) {
-        if (resolution > 1 && resolution != NaN && (resolution < outputSize[0] || resolution < outputSize[1])) {
+        if (resolution > 1 && resolution != NaN) {
             // TODO Remove resolution / interpolation from here and place in seperate second transformation step
             logger.info("Reducing output size to " + resolution + " maximum pixels");
             const resScaleFactor = (bufferedBounds.LonMax - bufferedBounds.LonMin) / (bufferedBounds.LatMax - bufferedBounds.LatMin);

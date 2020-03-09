@@ -172,9 +172,7 @@ const aggregate = async (expression:expr.Expression, required:string[], dependen
             ncols: cols,
             nrows: rows,
             raw: output.map(r => {
-                return r.map(x => {
-                    return x.evaluate() as number;
-                })
+                return r.map(x => x.evaluate() as number).map(x => typeof x != "number" || x == null ? NaN : x);
             })
         }
     };
@@ -191,7 +189,7 @@ const aggregate = async (expression:expr.Expression, required:string[], dependen
     const outputFile = outputFileTemplate + "_output.json";
     fs.writeFileSync(outputFile, JSON.stringify(outputJson));
 
-    return { kind: "ok", result: GeospatialForm.DataTable };    
+    return { kind: "ok", result: GeospatialForm.Raster };    
 
     //const outputStream = fs.createWriteStream(outputFileTemplate + "_output.json");
     //const combined = new CombinedStream();

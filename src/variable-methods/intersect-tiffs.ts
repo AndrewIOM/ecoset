@@ -54,9 +54,10 @@ export class IntersectTiffsVariableMethod {
     async computeToFile(space:PointWGS84[],time:Time,outputDir:string,dependencies:DependentResultFile[],options?:any) : Promise<Result<GeospatialForm, string>> {
         const buffer = options == undefined ? 0 : this.getNumber(options.buffer);
         const resolution = options == undefined ? undefined : this.getNumber(options.resolution);
+        const maxResolution = options == undefined ? undefined : this.getNumber(options.maxresolution);
         const summaryOnly : boolean = options == undefined ? false : this.getBool(options.summarise);
         try {
-            return await run(space, time, this.config.TileDir, this.config.NoDataValue, this.config.ScaleFactor, outputDir, summaryOnly, buffer, resolution);
+            return await run(space, time, this.config.TileDir, this.config.NoDataValue, this.config.ScaleFactor, outputDir, summaryOnly, buffer, resolution, maxResolution);
         }
         catch (e) {
             return { kind: "failure", message: e } as Result<GeospatialForm, string>;
