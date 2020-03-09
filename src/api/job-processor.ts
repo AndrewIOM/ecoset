@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
 import { logger } from './logger';
-import { EcosetJobRequest, PointWGS84, TemporalDimension, IVariableMethod, Result, JobState, GeospatialForm } from "./types";
+import { EcosetJobRequest, PointWGS84, TemporalDimension, IVariableMethod, Result, JobState, GeospatialForm, DependentResultFile } from "./types";
 import { listVariables, getDependencies } from "./registry";
 import { tryEstablishCache } from "./output-cache";
 import { redisStateCache, stateCache } from './state-cache';
@@ -128,9 +128,11 @@ const processJob = async (job:EcosetJobRequest, jobId:string, updatePercent:Upda
     // TODO Group nodes into levels to run using Promise.All
     // Currently running in order sequentially.
     let completeCount = 0;
+    let completeFiles = new Array<DependentResultFile>()
     const processThing = async (node:Node) : Promise<ProcessingResult> => {
         const fileTemplate = cacheDir + node.Variable.Name + "_" + node.Variable.Method.Id;
-        const v = await node.Variable.Method.Imp.computeToFile(boundingBox, job.TimeMode, fileTemplate, node.Variable.Options);
+        const v = await node.Variable.Method.Imp.computeToFile(boundingBox, job.TimeMode, fileTemplate, completeFiles, node.Variable.Options);
+        completeFiles.push({Filename: fileTemplate + "_output.json", Name: node.Variable.Name, Method: node.Variable.Method.Id } );
         completeCount ++;
         updatePercent(Math.round((completeCount / orderedNodes.length) * 100));
         return { Name: node.Variable.Name, Result: v };

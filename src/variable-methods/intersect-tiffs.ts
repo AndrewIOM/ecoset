@@ -1,4 +1,4 @@
-import { IVariableMethod, TemporalDimension, SlicedTime, PointWGS84, Time, Result, GeospatialForm } from "./../api/types"
+import { IVariableMethod, TemporalDimension, SlicedTime, PointWGS84, Time, Result, GeospatialForm, DependentResultFile } from "./../api/types"
 import { getTimeSlices, run } from "./utils/merge-and-window";
 
 @IVariableMethod.register
@@ -6,7 +6,7 @@ export class IntersectTiffsVariableMethod {
 
     private config : IntersectTiffConfig;
 
-    constructor(conf:any) {
+    constructor(deps:string[],conf:any) {
         this.config = (validateConfig(conf));
     }
 
@@ -51,7 +51,7 @@ export class IntersectTiffsVariableMethod {
         return false;
     }
 
-    async computeToFile(space:PointWGS84[],time:Time,outputDir:string,options?:any) : Promise<Result<GeospatialForm, string>> {
+    async computeToFile(space:PointWGS84[],time:Time,outputDir:string,dependencies:DependentResultFile[],options?:any) : Promise<Result<GeospatialForm, string>> {
         const buffer = options == undefined ? 0 : this.getNumber(options.buffer);
         const resolution = options == undefined ? undefined : this.getNumber(options.resolution);
         const summaryOnly : boolean = options == undefined ? false : this.getBool(options.summarise);

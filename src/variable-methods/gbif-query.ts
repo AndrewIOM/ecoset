@@ -1,4 +1,4 @@
-import { IVariableMethod, PointWGS84, Result, Time, TemporalDimension, GeospatialForm } from "./../api/types"
+import { IVariableMethod, PointWGS84, Result, Time, TemporalDimension, GeospatialForm, DependentResultFile } from "./../api/types"
 import {Index, Entity, Connection, Column, PrimaryGeneratedColumn, getConnectionManager, ConnectionManager } from "typeorm";
 import fs from 'fs';
 import { polygon, buffer } from '@turf/turf';
@@ -51,7 +51,7 @@ export class GbifQueryVariableMethod {
     conn : Connection;
     isConnecting: boolean;
 
-    constructor(conf:any) {
+    constructor(deps:string[],conf:any) {
         this.isConnecting = false;
         this.config = (validateConfig(conf));
         const connectionManager = getConnectionManager();
@@ -81,7 +81,7 @@ export class GbifQueryVariableMethod {
         return await this.conn.connect();
     }
 
-    async computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) {
+    async computeToFile(space:PointWGS84[],time:Time,outputDir:string,dependencies:DependentResultFile[],options:any) {
         const validatedOptions = validateOptions(options);
         return await this.tryConnect().then(async c => {
             const result = await runQuery(c, this.config.GbifTable, this.config.GbifOrgTable, this.config.GbifCoordTable, space, outputDir, validatedOptions);

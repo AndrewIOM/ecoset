@@ -78,11 +78,17 @@ export enum GeospatialForm {
     Raster = "Raster"
 }
 
+export interface DependentResultFile {
+    Name: string,
+    Method: string,
+    Filename: string
+}
+
 // Represents a computation function for a variable
 export interface IVariableMethod {
 
     // Runs computation for given spatial-temporal constraints and outputs to file.
-    computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) : Promise<Result<GeospatialForm,string>>;
+    computeToFile(space:PointWGS84[],time:Time,outputDir:string,dependencies:DependentResultFile[],options:any) : Promise<Result<GeospatialForm,string>>;
 
     // Returns the spatial dimensions for which computation can be conducted.
     spatialDimension() : PointWGS84[];

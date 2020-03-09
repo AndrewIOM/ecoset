@@ -1,4 +1,4 @@
-import { IVariableMethod, TemporalDimension, SlicedTime, PointWGS84, Time, Result, GeospatialForm } from "./../api/types"
+import { IVariableMethod, TemporalDimension, SlicedTime, PointWGS84, Time, Result, GeospatialForm, DependentResultFile } from "./../api/types"
 import { timeSlices, temporalMatch } from "./utils/time-slices";
 import { runCommand } from "./utils/run-command";
 import fs from 'fs';
@@ -11,7 +11,7 @@ export class IntersectShapeVariableMethod {
 
     private config : IntersectShapeConfig;
 
-    constructor(conf:any) {
+    constructor(deps:string[],conf:any) {
         this.config = (validateConfig(conf));
     }
 
@@ -42,7 +42,7 @@ export class IntersectShapeVariableMethod {
 
     availableForSpace() { return true; }
 
-    async computeToFile(space:PointWGS84[],time:Time,outputDir:string,options:any) : Promise<Result<GeospatialForm, string>> {
+    async computeToFile(space:PointWGS84[],time:Time,outputDir:string,dependencies:DependentResultFile[],options:any) : Promise<Result<GeospatialForm, string>> {
         return await cutShapefile(space, time, this.config.ShapefileDir, outputDir);
     }
 }

@@ -70,7 +70,7 @@ const variablesWithDimensions = (vars:VariableListItem[]) => {
                 const imp = variableMethods.find(vm => m.Implementation == vm.name.replace("VariableMethod",""));
                 const dependenciesExist = m.DependsOn.every(d => variables.find(x => x.Id == d) !== undefined);
                 if (imp == undefined || !dependenciesExist) { return null; }
-                const method = new imp(m.Options);
+                const method = new imp(m.DependsOn, m.Options);
                 return {
                     Id: m.Id,
                     Name: m.FriendlyName,
