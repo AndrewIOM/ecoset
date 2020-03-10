@@ -9,7 +9,7 @@ services:
 
   ecoset:
     volumes:
-      - C:/data/vnext:/data
+      - C:/data/vnext-terr:/data
       - ./output:/output
       - ./logs:/logs
       - "./src/config:/usr/src/app/config"

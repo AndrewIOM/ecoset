@@ -6,7 +6,7 @@ ENV ROOTDIR /usr/local/
 RUN apt-get update
 RUN apt-get install --yes curl
 RUN apt-get install --yes sudo
-RUN curl --silent --location https://deb.nodesource.com/setup_10.x | sudo bash -
+RUN curl --silent --location https://deb.nodesource.com/setup_12.x | sudo bash -
 RUN apt-get install --yes nodejs
 RUN apt-get install --yes build-essential
 
