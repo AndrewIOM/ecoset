@@ -197,6 +197,9 @@ const processJob = async (job:EcosetJobRequest, jobId:string, updatePercent:Upda
         }
     }
 
+    logger.info("Removing intermediate cache files..");
+    completeFiles.map(f => { try { fs.unlinkSync(f.Filename); } catch(e) {} });
+
     logger.info("Analysis complete");
     return { kind: "ok", result: undefined };
 }
