@@ -86,7 +86,7 @@ const getMin = (a: number[][]) : number => {
 }
 
 const stdDev = (x: number[][]) => { 
-    const x2 : number[] = x.reduce( function(a, b) { return a.concat(b); } ).filter(i => !isNaN(i));
+    const x2 : number[] = x.reduce( function(a, b) { return a.concat(b); }, [] ).filter(i => !isNaN(i));
     return x2.reduce(function (a, x, i) {
         var n = i + 1,
         sum_ = a.sum + x,
@@ -94,20 +94,17 @@ const stdDev = (x: number[][]) => {
         return {
             sum: sum_,
             squaresSum: squaresSum_,
-            stages: a.stages.concat(
-                Math.sqrt((squaresSum_ / n) - Math.pow((sum_ / n), 2))
-            )
-        };
+            result: Math.sqrt((squaresSum_ / n) - Math.pow((sum_ / n), 2))        };
     }, {
         sum: 0,
         squaresSum: 0,
-        stages: new Array<number>()
-    }).stages
+        result: 0
+    }).result
 };
 
 const average = (x: number[][]) => {
-    const x2 : number[] = x.reduce( function(a, b) { return a.concat(b); } ).filter(i => !isNaN(i));
-    return x2.reduce( function(a, b) { return a + b; } ) / x.length;
+    const y = new Array<number>().concat(...x);
+    return y.reduce( function(a, b) { return a + b; }, 0 ) / y.length;
 }
 
 
@@ -174,7 +171,7 @@ const aggregate = async (expression:expr.Expression, required:string[], dependen
             Mean: average(outputCube),
             Maximum: getMax(outputCube),
             Minimum: getMin(outputCube),
-            StDev: stdDev(outputCube).pop() as number
+            StDev: stdDev(outputCube)
         },
         data: {
             ncols: cols,
