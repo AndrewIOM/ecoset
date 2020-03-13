@@ -119,3 +119,4 @@ website/.yarn/releases
 .vscode/settings.json
 
 website/build
+output/**

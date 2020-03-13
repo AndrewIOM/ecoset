@@ -63,7 +63,7 @@ function notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
     return value !== null && value !== undefined;
 }
 
-const variablesWithDimensions = (vars:VariableListItem[]) => {
+const variablesWithMethods = (vars:VariableListItem[]) => {
     return vars.map(v => {
         const methods = 
             v.Methods.map(m => {
@@ -76,8 +76,6 @@ const variablesWithDimensions = (vars:VariableListItem[]) => {
                     Name: m.FriendlyName,
                     License: m.License,
                     LicenseUrl: m.LicenseUrl,
-                    Time: method.temporalDimension(),
-                    Space: method.spatialDimension(),
                     Imp: method
                 }
             }).filter(notEmpty);
@@ -113,7 +111,7 @@ interface VariableDTO {
 
 const variables = parseVariableConfiguration(config.get("variables"));
 const variableMethods = IVariableMethod.getImplementations();
-const implementedVariables = variablesWithDimensions(variables);
+const implementedVariables = variablesWithMethods(variables);
 
 variableMethods.forEach(v => { logger.info("Loaded method: " + v.name) })
 implementedVariables.forEach(v => { logger.info("Loaded variable: " + v.Name) })

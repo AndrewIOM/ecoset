@@ -21,8 +21,6 @@ type VariableToRun = {
         Name: string;
         License: string;
         LicenseUrl: string;
-        Time: TemporalDimension;
-        Space: PointWGS84[];
         Imp: IVariableMethod;
     }
     Options: Map<string,any>
@@ -113,6 +111,10 @@ const processJob = async (job:EcosetJobRequest, jobId:string, updatePercent:Upda
             }
             return null;
         }).filter(notEmpty);
+    
+    if (variablesToRun.length == 0) {
+        return { kind: "failure", message: "None of the specified variables existed, or request contained no variables" };
+    }
 
     const boundingBox : PointWGS84[] = [
         { Latitude: job.LatitudeNorth, Longitude: job.LongitudeWest },

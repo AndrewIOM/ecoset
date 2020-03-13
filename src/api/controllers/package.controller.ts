@@ -19,7 +19,8 @@ export class DataPackageController extends Controller {
 		@Post('submit')
 		public async submit(@Body() jobRequest: EcosetJobRequest): Promise<JobSubmitResponse> {
 			let r = await queue.add(jobRequest, { jobId: uuidv4() });
-			return { success: true, jobId: r.id.toString(), message: "" };
+			redisStateCache.setState(stateCache, r.id.toString(), JobState.Queued);
+			return { success: true, jobId: r.id.toString(), message: "Analysis successfully submitted" };
 		}
 
 		@Get('list')
