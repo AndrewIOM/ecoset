@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.6]
+### Fixed
+- GBIF queries get temporal dimension only when requested
+- Area calculation method .reduce function has default zero for when no data is returned
+- GBIF queries correctly return failure when counting fails
+- Jobs queued return queued status from API rather than nonexistent
+- Jobs with no valid variables fail
+
 ## [2.1.5]
 ### Fixed
 - Fixed crash when empty row passed into aggregator
