@@ -120,7 +120,7 @@ const getAreaByCategory = async (space:PointWGS84[], time:Time, shapefileDir:str
             areas.set(f.properties[field], a);
         }
     });
-    const filledArea = Array.from(areas.values()).reduce((a, b) => a + b);
+    const filledArea = Array.from(areas.values()).reduce((a, b) => a + b, 0);
     areas.set('none', area(bufferedPoly) - filledArea);
     
     const output = Array.from(areas).map(x => {
