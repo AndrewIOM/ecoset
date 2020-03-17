@@ -85,15 +85,15 @@ export class GbifQueryVariableMethod {
 
     runQuery = async (gbifTable: string, gbifOrgTable:string,gbifCoordTable: string, space:PointWGS84[], output:string, options:GbifOptions) : Promise<Result<GeospatialForm,string>> => {
         
-        const poly = polygon([space.map(s => [s.Latitude, s.Longitude])]);
+        const poly = polygon([space.map(s => [s.Longitude, s.Latitude])]);
         const bufferedPoly = buffer(poly, 3, { units: 'degrees' });
     
         let wkt = "POLYGON ((";
         bufferedPoly.geometry?.coordinates[0].forEach(pos => {
-            wkt = wkt + pos[0] + " " + pos[1] + ",";
+            wkt = wkt + pos[1] + " " + pos[0] + ",";
         });
         wkt = wkt.substr(0, wkt.length - 1) + "))";
-        logger.info("WKT is: " + wkt);
+        logger.info("WKT for MySQL queries (EPSG lat/lon axis order) is: " + wkt);
     
         let query = "";
         if (options.Statistic == GbifStatistic.List) {

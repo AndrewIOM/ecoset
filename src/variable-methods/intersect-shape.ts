@@ -4,7 +4,7 @@ import { runCommand } from "./utils/run-command";
 import fs from 'fs';
 import JSONstream from 'jsonstream';
 import path from 'path';
-import winston = require("winston");
+import { logger } from "../api/logger";
 
 @IVariableMethod.register
 export class IntersectShapeVariableMethod {
@@ -62,15 +62,15 @@ const validateConfig = (config:any) => {
 const cutShapefile = async (space:PointWGS84[], time:Time, shapefileDir:string, outputFileTemplate:string) : Promise<Result<GeospatialForm,string>> => {
 
     // 1. Find the shapefile for the time.
-    console.log("Starting shapefile intersection");
+    logger.info("Starting shapefile intersection");
     const times = timeSlices(shapefileDir);
     const timeSlice = temporalMatch(times, time);
     if (timeSlice == undefined) {
-        winston.warn("There were no time slices that met the criteria");
+        logger.warn("There were no time slices that met the criteria");
         return { kind: "failure", message: "There were no time slices that met the criteria" };
     }
     if (timeSlice.Slice == undefined) {
-        winston.warn("There were no time slices that met the criteria");
+        logger.warn("There were no time slices that met the criteria");
         return { kind: "failure", message: "There were no time slices that met the criteria" };
     }
 
@@ -79,34 +79,48 @@ const cutShapefile = async (space:PointWGS84[], time:Time, shapefileDir:string, 
         fs.readdirSync(timeSlice.Slice)
             .find(x => path.extname(x) === ".shp");
     if (shapefile == undefined) {
-        winston.warn("There were no data in the time slice");
+        logger.warn("There were no data in the time slice");
         return { kind: "failure", message: "There were no data in the time slice" };
     }
 
     // 3. Convert shapefile to geojson and select overlapping points
     const temporaryFile = outputFileTemplate + "_temp.json";
-    const wktPolygon = "POLYGON ((" + (space.map(s => s.Latitude.toString() + " " + s.Longitude.toString()).join()) + "))";
+    const wktPolygon = "POLYGON ((" + (space.map(s => s.Longitude.toString() + " " + s.Latitude.toString()).join()) + "))"; // lon-lat format
     let commandOpts = ["-clipsrc", wktPolygon, temporaryFile, timeSlice.Slice + "/" + shapefile, "-f", "GeoJSON"];
-    await runCommand("ogr2ogr", commandOpts, false, false);
-
-    if (!fs.existsSync(temporaryFile)) {
-        winston.warn("ogr2ogr did not output anything.");
+    const success = await runCommand("ogr2ogr", commandOpts, false, false).then(_ => {
+        if (!fs.existsSync(temporaryFile)) {
+            logger.warn("ogr2ogr did not output anything.");
+            return false;
+        }
+        return true;
+    }).catch(err => {
+        logger.error("Shape file intersection failed with error: " + err);
+        return false;
+    });
+    if (!success) {
         return { kind: "failure", message: "Shape intersection did not complete successfully." };
     }
 
     // 4. Filter json to only desired properties
-    const outputFile = outputFileTemplate + "_output.json";
-    const outputStream = fs.createWriteStream(outputFile)
+    const filter = new Promise<void>((resolve,reject) => {
+        const outputFile = outputFileTemplate + "_output.json";
+        const outputStream = fs.createWriteStream(outputFile);
+        fs.appendFileSync(outputFile, "[");
+        fs.createReadStream(temporaryFile)
+            .pipe(JSONstream.parse(['features', true, 'properties']))
+            .pipe(JSONstream.stringify())
+            .pipe(outputStream)
+            .on('finish', _ => {
+                logger.info("Filtered data properties.");
+                resolve();
+            })
+            .on('error', reject); 
+    });
+    await filter.catch(e => {
+        logger.error("Error filtering data properties: " + JSON.stringify(e));
+    })
 
-    fs.appendFileSync(outputFile, "[");
-    fs.createReadStream(temporaryFile)
-        .pipe(JSONstream.parse(['features', true, 'properties']))
-        .pipe(JSONstream.stringify())
-        .pipe(outputStream);
-
-    // Remove temporary files
     try { fs.unlinkSync(temporaryFile) } catch (e) {}
-    console.log("Finished shapefile intersection");
-
+    logger.info("Finished shapefile intersection");
     return { kind: "ok", result: GeospatialForm.DataTable };
 }

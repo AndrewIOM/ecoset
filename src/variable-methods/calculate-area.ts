@@ -3,9 +3,8 @@ import { timeSlices, temporalMatch } from "./utils/time-slices";
 import { runCommand } from "./utils/run-command";
 import fs from 'fs';
 import path from 'path';
-import winston = require("winston");
-import { logger } from "../api/logger";
 import { polygon, buffer, area, featureEach } from '@turf/turf';
+import { logger } from "../api/logger";
 
 @IVariableMethod.register
 export class CalculateAreaVariableMethod {
@@ -70,43 +69,49 @@ const getAreaByCategory = async (space:PointWGS84[], time:Time, shapefileDir:str
     const times = timeSlices(shapefileDir);
     const timeSlice = temporalMatch(times, time);
     if (timeSlice == undefined) {
-        winston.warn("There were no time slices that met the criteria");
+        logger.warn("There were no time slices that met the criteria");
         return { kind: "failure", message: "There were no time slices that met the criteria" };
     }
     if (timeSlice.Slice == undefined) {
-        winston.warn("There were no time slices that met the criteria");
+        logger.warn("There were no time slices that met the criteria");
         return { kind: "failure", message: "There were no time slices that met the criteria" };
     }
 
     // 2. Buffer polygon if required.
-    const poly = polygon([space.map(s => [s.Latitude, s.Longitude])]);
+    const poly = polygon([space.map(s => [s.Longitude, s.Latitude])]);
     const bufferedPoly = buffer(poly, 3, { units: 'degrees' });
 
     let wkt = "POLYGON ((";
     bufferedPoly.geometry?.coordinates[0].forEach(pos => {
-        wkt = wkt + pos[0] + " " + pos[1] + ",";
+        wkt = wkt + pos[0] + " " + pos[1] + ","; // Longitude * Latitude
     });
     wkt = wkt.substr(0, wkt.length - 1) + "))";
-    logger.info("WKT is: " + wkt);
+    logger.info("WKT (long-lat) is: " + wkt);
 
     // 3. Load shapefile
     const shapefile =
         fs.readdirSync(timeSlice.Slice)
             .find(x => path.extname(x) === ".shp");
     if (shapefile == undefined) {
-        winston.warn("There were no data in the time slice");
+        logger.warn("There were no data in the time slice");
         return { kind: "failure", message: "There were no data in the time slice" };
     }
 
     // 4. Clip shapefile to area
     const clippedFile = outputFileTemplate + "_clipped.json";
     let commandOpts = ["-clipsrc", wkt, clippedFile, timeSlice.Slice + "/" + shapefile, "-f", "GeoJSON" ];
-    await runCommand("ogr2ogr", commandOpts, false, false);
-    if (!fs.existsSync(clippedFile)) {
-        winston.warn("ogr2ogr did not output anything.");
-        return { kind: "failure", message: "Shape clip did not complete successfully." };
-    }
-    
+    const success = await runCommand("ogr2ogr", commandOpts, false, false).then(_ => {
+        if (!fs.existsSync(clippedFile)) {
+            logger.warn("ogr2ogr did not output anything.");
+            return false;
+        }
+        return true;
+    }).catch(e => {
+        logger.error("Could not clip shapefile: " + e);
+        return false;
+    });
+    if (!success) return { kind: "failure", message: "Shape clip did not complete successfully." };
+
     // 5. Spatial statistics
     const clippedGeojson = JSON.parse(fs.readFileSync(clippedFile, 'UTF8'));
     let areas = new Map<string,number>();
