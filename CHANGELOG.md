@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.9]
+### Changed
+- Raster data cubes are now formatted as numbers (in line with JSON spec) rather than string. No data values are now null.
+
 ## [2.1.8]
 ### Fixed
 - Fixed issue where area calulation and intersection methods would have reversed lat/lon.
