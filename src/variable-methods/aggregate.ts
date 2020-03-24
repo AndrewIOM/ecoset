@@ -176,7 +176,7 @@ const aggregate = async (expression:expr.Expression, required:string[], dependen
         data: {
             ncols: cols,
             nrows: rows,
-            raw: outputCube.map(r => r.map(x => x == null ? NaN.toString() : x.toString()))
+            raw: outputCube.map(r => r.map(x => x == null ? NaN : x))
         }
     };
 

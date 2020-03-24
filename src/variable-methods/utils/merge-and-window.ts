@@ -272,26 +272,27 @@ export async function run(
                     let popped = lineSplit.pop();
                     if (popped !== undefined) {
                         nRows = +popped;
-                        fs.appendFileSync(outputFileTemplate + "_output.json", '"nrows":' + nRows.toString() + ',');
+                        fs.appendFileSync(outputFileTemplate + "_output.json", '"nrows":' + nRows.toString() + ',\n"raw":[');
                     }
-                } else if (lineSplit[0] == 'NODATA_value') {
-                    fs.appendFileSync(outputFileTemplate + "_output.json", '"nodata":' + lineSplit.pop() + ',\n"raw":[');
-                } else if (!isNaN(Number(lineSplit[0]))) {
+                } 
+                else if (lineSplit[0] == 'NODATA_value') { } // NODATA value no longer required 
+                else if (!isNaN(Number(lineSplit[0]))) {
                     if (startLine == -1) startLine = lineCount;
         
                     let lineData = (line.substr(1)).split(' ');
+                    let lineRaw = new Array<number>(lineData.length);
                     for (var i = 0; i < lineData.length; i++) {
                         const v = Number(lineData[i]);
                         if (v != noDataValue) {
-                            lineData[i] = (v * valueScaleFactor).toString();
+                            lineRaw[i] = (v * valueScaleFactor);
                         } else {
-                            lineData[i] = NaN.toString();
+                            lineRaw[i] = NaN;
                         }
                     }
                     if (lineCount - startLine + 1 < nRows)
-                        fs.appendFileSync(outputFileTemplate + "_output.json", JSON.stringify(lineData) + ',');
+                        fs.appendFileSync(outputFileTemplate + "_output.json", JSON.stringify(lineRaw) + ',');
                     else {
-                        fs.appendFileSync(outputFileTemplate + "_output.json", JSON.stringify(lineData) + ']}}');
+                        fs.appendFileSync(outputFileTemplate + "_output.json", JSON.stringify(lineRaw) + ']}}');
                     }
                 }
                 lineCount++;
