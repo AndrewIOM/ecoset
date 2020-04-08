@@ -104,7 +104,7 @@ const stdDev = (x: number[][]) => {
 
 const average = (x: number[][]) => {
     const y = new Array<number>().concat(...x);
-    return y.reduce( function(a, b) { return a + b; }, 0 ) / y.length;
+    return y.filter(i => !isNaN(i)).reduce( function(a, b) { return a + b; }, 0 ) / y.length;
 }
 
 
