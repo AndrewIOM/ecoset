@@ -29,10 +29,12 @@ export class GbifQueryVariableMethod {
 
     config: GbifConfig;
     time : TemporalDimension | undefined;
+    refreshingTime: boolean;
     conn : Pool;
 
     constructor(deps:string[],conf:any) {
         this.config = (validateConfig(conf));
+        this.refreshingTime = false;
         this.conn = createPool({
             host: this.config.Host,
             port: 3306,
@@ -58,7 +60,10 @@ export class GbifQueryVariableMethod {
         if (this.time) { 
             return this.time; 
         } else {
-            this.getTime(this.config.GbifTable).then(t => this.time = t );
+            if (!this.refreshingTime) {
+                this.refreshingTime = true;
+                this.getTime(this.config.GbifTable).then(t => this.time = t );
+            }
             return { kind: "timeExtent", minDate: { Year: NaN }, maxDate: { Year: NaN }}; 
         }
     }
@@ -68,6 +73,7 @@ export class GbifQueryVariableMethod {
     availableForSpace() { return true; }
 
     getTime = async (gbifTable: string) : Promise<TemporalDimension | undefined> => {
+        this.refreshingTime = true;
         const query = `SELECT MIN(gbif_eventdate) as min, MAX(gbif_eventdate) as max from ${gbifTable}`;
         logger.info("Determining temporal extent of GBIF database...");
         return await this.conn.query<RowDataPacket[]>(query).catch(err => {
