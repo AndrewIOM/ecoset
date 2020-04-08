@@ -153,9 +153,9 @@ const aggregate = async (expression:expr.Expression, required:string[], dependen
             const row = data[iy];
             for (let ix = 0; ix < row.length; ix++) {
                 let newVars : any = {};
-                newVars[d.Name] = row[ix];
-                newVars[d.Name + "_mean"] = summary.Mean;
-                newVars[d.Name + "_stdev"] = summary.StDev;
+                newVars[d.Name] = row[ix] == null ? NaN : row[ix];
+                newVars[d.Name + "_mean"] = summary.Mean == null ? NaN : summary.Mean;
+                newVars[d.Name + "_stdev"] = summary.StDev == null ? NaN : summary.StDev;
                 output[iy][ix] = output[iy][ix].simplify(newVars);
             }
         }
