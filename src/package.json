@@ -33,7 +33,7 @@
     "config": "^3.2.5",
     "event-stream": "^4.0.1",
     "expr-eval": "^2.0.2",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "js-yaml": "^3.13.1",
     "jsonstream": "^1.0.3",
     "mysql2": "^2.1.0",
