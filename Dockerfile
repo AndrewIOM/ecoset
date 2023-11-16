@@ -1,14 +1,6 @@
-FROM ubuntu:xenial
+FROM node:20.9.0-bookworm
 
 ENV ROOTDIR /usr/local/
-
-# Install Node.js
-RUN apt-get update
-RUN apt-get install --yes curl
-RUN apt-get install --yes sudo
-RUN curl --silent --location https://deb.nodesource.com/setup_12.x | sudo bash -
-RUN apt-get install --yes nodejs
-RUN apt-get install --yes build-essential
 
 # Install GDAL
 RUN apt-get install --yes software-properties-common
@@ -16,11 +8,8 @@ RUN add-apt-repository ppa:ubuntugis/ppa
 RUN apt-get update
 RUN apt-get install --yes gdal-bin python3-gdal
 
-# Install yarn 1.2
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
-RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
-RUN apt-get update
-RUN apt-get install --yes yarn
+# Setup yarn
+RUN yarn set version stable
 
 # Setup Directories
 RUN mkdir -p /data

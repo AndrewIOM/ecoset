@@ -4,7 +4,7 @@ import { stateCache, redisStateCache } from '../state-cache';
 import { queue } from '../queue';
 import { listVariableDtos } from '../registry';
 import * as cache from '../output-cache';
-import uuidv4 from 'uuid/v4';
+import { v4 as uuid } from 'uuid';
 
 @Route('Data')
 export class DataPackageController extends Controller {
@@ -18,9 +18,10 @@ export class DataPackageController extends Controller {
 
 		@Post('submit')
 		public async submit(@Body() jobRequest: EcosetJobRequest): Promise<JobSubmitResponse> {
-			let r = await queue.add(jobRequest, { jobId: uuidv4() });
-			redisStateCache.setState(stateCache, r.id.toString(), JobState.Queued);
-			return { success: true, jobId: r.id.toString(), message: "Analysis successfully submitted" };
+			const newId = uuid();
+			let r = await queue.add(newId, jobRequest, { jobId: newId });
+			redisStateCache.setState(stateCache, newId, JobState.Queued);
+			return { success: true, jobId: newId, message: "Analysis successfully submitted" };
 		}
 
 		@Get('list')
@@ -32,7 +33,7 @@ export class DataPackageController extends Controller {
 		public async fetch(@Path('packageId') packageId: string) {
 			const pkg = await queue.getJob(packageId);
 			if (pkg) {
-				if (pkg.isCompleted()) {
+				if (await pkg.isCompleted()) {
 					const stream = cache.getCachedResult(packageId.toString());
 					if (!stream) return undefined;
 					return stream;

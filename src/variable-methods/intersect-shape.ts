@@ -110,7 +110,7 @@ const cutShapefile = async (space:PointWGS84[], time:Time, shapefileDir:string, 
             .pipe(JSONstream.parse(['features', true, 'properties']))
             .pipe(JSONstream.stringify())
             .pipe(outputStream)
-            .on('finish', _ => {
+            .on('finish', (_: any) => {
                 logger.info("Filtered data properties.");
                 resolve();
             })

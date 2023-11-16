@@ -1,21 +1,23 @@
-import bull from 'bull';
+import { Worker, Queue, ConnectionOptions } from 'bullmq';
 import fs from 'fs';
 import { EcosetJobRequest } from "./types";
 import config from 'config';
 
-export const queue = new bull<EcosetJobRequest>('ecoset', {
-    limiter: {
-        max: 9999,             // 3 jobs at a time
-        duration: 43200000  // 12 hour maximum limit
-    },
-    redis: {
-        port: config.get('cache.port'),
-        host: config.get('cache.host')
-    }
+const connection : ConnectionOptions = {
+    port: config.get('cache.port'),
+    host: config.get('cache.host')
+}
+
+export const queue = new Queue<EcosetJobRequest>('ecoset', {
+    connection: connection
 });
 
-if (fs.existsSync(__dirname + '/job-processor.ts')) {
-    queue.process(5, __dirname + '/job-processor.ts');
-} else {
-    queue.process(5, __dirname + '/job-processor.js');
-}
+const processorFile = __dirname + '/workers/job-processor.js';
+
+const worker = new Worker('ecoset', processorFile, {
+    limiter: {
+        max: 50,
+        duration: 43200000
+    },
+    connection: connection
+});
