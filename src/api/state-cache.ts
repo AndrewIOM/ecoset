@@ -31,14 +31,14 @@ function create() {
 }
 
 async function setJobState(cache:redis.RedisClientType<any,any,any>, jobId:string, state:JobState) {
-    console.log("Setting job state");
+    logger.debug("Setting job state for " + jobId);
     const result = await cache.set(redisKey(jobId), state.toString());
     if (result == null) return false;
     return true;
 }
 
 async function getJobState(cache:redis.RedisClientType<any,any,any>, jobId:string) : Promise<JobState> { 
-    console.log("Getting job state");
+    logger.debug("Getting job state for " + jobId);
     if (!cache.exists(jobId)) {
         return JobState.NonExistent;
     }
