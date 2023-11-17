@@ -17,7 +17,8 @@ gbifdb:
 
 locations:
     tileroot: &tileroot "c:/sometiledir"
-    cache: /Users/andrewmartin/Desktop/ecoset/cache
+    cache: ./../test/cache/
+    logs: ./../test/logs/
 
 variables:
 
@@ -33,7 +34,7 @@ variables:
                 licenseUrl: https://opensource.org/licenses/GPL-3.0
                 implementation: IntersectTiffs
                 options:
-                    tiledir: /Users/andrewmartin/Desktop/ecoset/datasets/sample-data/exclusiveeconomiczones
+                    tiledir: ./../test/sample-data/exclusiveeconomiczones
                     nodata: -9999
 
     - marine_ecoregions:
@@ -48,7 +49,7 @@ variables:
                 licenseUrl: https://opensource.org/licenses/GPL-3.0
                 implementation: IntersectTiffs
                 options:
-                    tiledir: /Users/andrewmartin/Desktop/ecoset/datasets/sample-data/marineecoregions
+                    tiledir: ./../test/sample-data/marineecoregions
                     nodata: -9999
 
     - sev:
@@ -80,6 +81,6 @@ variables:
                 licenseUrl: https://opensource.org/licenses/GPL-3.0
                 implementation: IntersectShape
                 options:
-                    shapefileDir: /Users/andrewmartin/Desktop/ecoset/datasets/sample-data/groms
+                    shapefileDir: ./../test/sample-data/groms
 
     

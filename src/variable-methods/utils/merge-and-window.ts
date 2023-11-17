@@ -172,7 +172,7 @@ export async function run(
     }
 
     // Take account of linear scales used when storing data into tiff files
-    const valueScaleFactor = scaleFactor == undefined || scaleFactor == NaN ? 1 : scaleFactor;
+    const valueScaleFactor = scaleFactor == undefined || Number.isNaN(scaleFactor) ? 1 : scaleFactor;
     logger.info("Scaling raster values by a factor of: " + valueScaleFactor);
 
     // Spawn Python process: MERGE
@@ -208,7 +208,7 @@ export async function run(
         }
     }
     if (resolution) {
-        if (resolution > 1 && resolution != NaN) {
+        if (resolution > 1 && Number.isNaN(resolution)) {
             // TODO Remove resolution / interpolation from here and place in seperate second transformation step
             logger.info("Reducing output size to " + resolution + " maximum pixels");
             const resScaleFactor = (bufferedBounds.LonMax - bufferedBounds.LonMin) / (bufferedBounds.LatMax - bufferedBounds.LatMin);
@@ -263,7 +263,7 @@ export async function run(
     let lineCount = 0;
 
     const writeData = () => {
-        return new Promise(resolve => {
+        return new Promise<void>(resolve => {
             file.on('line', line => {
                 const lineSplit = line.split(' ');
                 if (lineSplit[0] == 'ncols') {

@@ -113,7 +113,7 @@ const getAreaByCategory = async (space:PointWGS84[], time:Time, shapefileDir:str
     if (!success) return { kind: "failure", message: "Shape clip did not complete successfully." };
 
     // 5. Spatial statistics
-    const clippedGeojson = JSON.parse(fs.readFileSync(clippedFile, 'UTF8'));
+    const clippedGeojson = JSON.parse(fs.readFileSync(clippedFile, { encoding: "utf8" }));
     let areas = new Map<string,number>();
     featureEach(clippedGeojson, (f,i) => {
         const a = area(f);

@@ -1,25 +1,25 @@
-import winston, { format } from 'winston';
+import { createLogger, transports, format } from 'winston';
 import config from 'config';
 
 const dirName = config.has("locations.logs") ? config.get("locations.logs") as string : "/logs";
 
-export const logger = winston.createLogger({
+export const logger = createLogger({
     level: 'info',
     format: format.combine(
-        winston.format.json(),
-        winston.format.timestamp({ format: 'YY-MM-DD HH:mm:ss'})),
+        format.json(),
+        format.timestamp({ format: 'YY-MM-DD HH:mm:ss'})),
         transports: [
-        new winston.transports.File({ filename: 'error.log', dirname: dirName, level: 'error', maxsize: 26214400, zippedArchive: true }),
-        new winston.transports.File({ filename: 'combined.log', dirname: dirName, maxsize: 26214400, zippedArchive: true })
+        new transports.File({ filename: 'error.log', dirname: dirName, level: 'error', maxsize: 26214400, zippedArchive: true }),
+        new transports.File({ filename: 'combined.log', dirname: dirName, maxsize: 26214400, zippedArchive: true })
     ]
 });
 
 if (process.env.NODE_ENV !== 'production') {
-    logger.add(new winston.transports.Console({
+    logger.add(new transports.Console({
         format: format.combine(
-            winston.format.colorize(),
-            winston.format.timestamp({ format: 'YY-MM-DD HH:mm'}),
-            winston.format.prettyPrint(),
-            winston.format.simple())
+            format.colorize(),
+            format.timestamp({ format: 'YY-MM-DD HH:mm'}),
+            format.prettyPrint(),
+            format.simple())
     }));
 }

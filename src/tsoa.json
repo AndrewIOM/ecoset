@@ -1,17 +1,15 @@
 {
-    "swagger": {
-      "basePath": "/api/v1",
-      "entryFile": "./api/app.ts",
-      "specVersion": 3,
-      "outputDirectory": "./api/dist",
-      "controllerPathGlobs": [
-        "./api/controllers/**/*controller.ts"
-      ]
-    },
-    "routes": {
-      "basePath": "/api/v1",
-      "entryFile": "./api/app.ts",
-      "routesDir": "./api/routes",
-      "middleware": "express"
-    }
+  "entryFile": "./api/app.ts",
+  "noImplicitAdditionalProperties": "throw-on-extras",
+  "controllerPathGlobs": ["./api/controllers/**/*controller.ts"],
+  "spec": {
+    "outputDirectory": "./api/dist",
+    "specVersion": 3
+  },
+  "routes": {
+    "basePath": "/api/v1",
+    "entryFile": "./api/app.ts",
+    "routesDir": "./api/routes",
+    "middleware": "express"
   }
+}

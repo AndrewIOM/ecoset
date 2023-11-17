@@ -122,7 +122,7 @@ export class GbifQueryVariableMethod {
             }
     
             const count = Number.parseInt(result.result[0]['count']);
-            if (count == NaN) {
+            if (Number.isNaN(count)) {
                 logger.warn("Count response was unexpected: " + JSON.stringify(result.result[0]));
                 return { kind: "failure", message: "Could not parse GBIF count" };
             }

@@ -9,10 +9,11 @@ services:
 
   ecoset:
     volumes:
-      - C:/data/vnext-terr:/data
-      - ./output:/output
-      - ./logs:/logs
-      - "./src/config:/usr/src/app/config"
+      - ./test/cache:/cache
+      - ./test/sample-data:/data
+      - ./test/output:/output
+      - ./test/logs:/logs
+      - "./src/config/default.docker-dev.yml:/usr/src/app/config/default.yml"
 
   # gbifdb:
   #   image: mysql

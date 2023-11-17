@@ -1,0 +1,86 @@
+api:
+    port: 5002
+
+queue:
+    maxjobs: 3
+    maxduration: 43200000
+
+cache:
+    host: "redis"
+    port: 6379
+
+gbifdb:
+    host: localhost
+    username: test
+    password: test
+    database: gbif
+
+locations:
+    tileroot: &tileroot "c:/sometiledir"
+    cache: /cache/
+    logs: /logs/
+
+variables:
+
+    - sea_depth:
+        name: "Coastal Habitats"
+        description: "A global map of sea depth in metres."
+        unit: metres below sea level
+        methods:
+            - default:
+                name: "Default"
+                description: "Data source: US Government"
+                license: GPLv2
+                licenseUrl: https://opensource.org/licenses/GPL-3.0
+                implementation: IntersectTiffs
+                options:
+                    tiledir: /data/exclusiveeconomiczones
+                    nodata: -9999
+
+    - marine_ecoregions:
+        name: "Marine Ecoregions"
+        description: "Marine ecoregions are ecoregions (ecological regions) of the oceans and seas identified and defined based on biogeographic characteristics."
+        unit: ecoregion
+        methods:
+            - wwf:
+                name: "Default"
+                description: "Data source: WWF"
+                license: GPLv2
+                licenseUrl: https://opensource.org/licenses/GPL-3.0
+                implementation: IntersectTiffs
+                options:
+                    tiledir: /data/marineecoregions
+                    nodata: -9999
+
+    - sev:
+        name: "Summary Ecological Value"
+        description: "Summarises ecological value within a landscape based on five values"
+        unit: unitless
+        methods:
+            - default:
+                name: "Default"
+                description: "Uses five metrics"
+                license: GPLv2
+                licenseUrl: https://opensource.org/licenses/GPL-3.0
+                implementation: SpatialSummary
+                depends_on:
+                    - marine_ecoregions
+                    - sea_depth
+                options:
+                    equation: ((marine_ecoregions * 1.0) + (sea_depth * 0.5)) / 2.0
+
+    - migratory:
+        name: "Migratory Species"
+        description: "Species with migration pathways"
+        unit: species names
+        methods:
+            - default:
+                name: "GROMS"
+                description: "GROMS database"
+                license: GPLv2
+                licenseUrl: https://opensource.org/licenses/GPL-3.0
+                implementation: IntersectShape
+                options:
+                    shapefileDir: /data/groms
+
+    
