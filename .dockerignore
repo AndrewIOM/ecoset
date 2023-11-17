@@ -6,3 +6,9 @@ src/config
 src/error.log
 src/combined.log
 src/api/dist/*
+src/build
+src/logs
+src/.yarn
+test/cache/**
+test/logs/**
+test/output/**
