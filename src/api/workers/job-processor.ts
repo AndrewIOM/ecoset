@@ -7,6 +7,7 @@ import { listVariables, getDependencies } from "../registry";
 import { tryEstablishCache } from "../output-cache";
 import { redisStateCache, stateCache } from '../state-cache';
 import { SandboxedJob } from 'bullmq';
+import { LeveledLogMethod } from 'winston';
 
 const variables = listVariables();
 
@@ -91,9 +92,9 @@ const promiseMap = (inputValues: Node[], mapper:((n:Node) => Promise<ProcessingR
     return inputValues.reduce(reducer, Promise.resolve([]));
 }
 
-const processJob = async (job:EcosetJobRequest, jobId:string, updatePercent:UpdatePercent) : Promise<Result<void,string>> => {
+const processJob = async (job:EcosetJobRequest, jobId:string, updatePercent:UpdatePercent, log: ((arg0: LeveledLogMethod, arg1: string) => void)) : Promise<Result<void,string>> => {
 
-    logger.info("Starting processing of analysis: " + JSON.stringify(job));
+    log(logger.info, "Starting processing of analysis: " + JSON.stringify(job));
     await redisStateCache.setState(stateCache, jobId, JobState.Processing);
 
     const cacheDir = tryEstablishCache(jobId.toString());
@@ -141,7 +142,7 @@ const processJob = async (job:EcosetJobRequest, jobId:string, updatePercent:Upda
     }
 
     const results = await promiseMap(orderedNodes, processThing).catch(e => {
-        logger.error("There was a problem running the stated variables and methods. The error was: " + e);
+        log(logger.error, "There was a problem running the stated variables and methods. The error was: " + e);
         return undefined;
     })
 
@@ -154,7 +155,7 @@ const processJob = async (job:EcosetJobRequest, jobId:string, updatePercent:Upda
         return { kind: "failure", message: "There was an internal error with your analysis: " + JSON.stringify(failed) };
     }
 
-    logger.info("All workloads complete for analysis: " + jobId);
+    log(logger.info, "All workloads complete for analysis: " + jobId);
 
     // Merge all outputs into a single output (for sending all at once)
     const finalOutputFile = cacheDir + "/output.json";
@@ -178,13 +179,13 @@ const processJob = async (job:EcosetJobRequest, jobId:string, updatePercent:Upda
         }
 
         const variableResult = path.join(cacheDir, variablesToRun[index].Name + "_" + variablesToRun[index].Method.Id + "_output.json");
-        logger.debug("File is: " + variableResult);
+        log(logger.debug, "File is: " + variableResult);
         if (!fs.existsSync(variableResult)) {
-            logger.warn("file doesn't exist");
-            logger.warn("No data in result: " + variablesToRun[index].Name + "; method: " + variablesToRun[index].Method.Id);
+            log(logger.warn, "file doesn't exist");
+            log(logger.warn, "No data in result: " + variablesToRun[index].Name + "; method: " + variablesToRun[index].Method.Id);
             return { kind: "failure", message: "No data in result: " + variablesToRun[index].Name + "; method: " + variablesToRun[index].Method.Id };
         }
-        logger.info("Synthesising results: " + variablesToRun[index].Name + " - " + variablesToRun[index].Method.Id);
+        log(logger.info, "Synthesising results: " + variablesToRun[index].Name + " - " + variablesToRun[index].Method.Id);
         fs.appendFileSync(finalOutputFile, "{ \"name\":\""
             + variablesToRun[index].Name + "\",\"method_used\":\"" + variablesToRun[index].Method.Id
             + "\",\"output_format\":\"" + outputFormat + "\",\"data\":");
@@ -199,15 +200,22 @@ const processJob = async (job:EcosetJobRequest, jobId:string, updatePercent:Upda
         }
     }
 
-    logger.info("Removing intermediate cache files..");
+    log(logger.info, "Removing intermediate cache files..");
     completeFiles.map(f => { try { fs.unlinkSync(f.Filename); } catch(e) {} });
 
-    logger.info("Analysis complete");
+    log(logger.info, "Analysis complete");
     return { kind: "ok", result: undefined };
 }
 
+const logToJobThen = (job:SandboxedJob<EcosetJobRequest>) => {
+    return (then:LeveledLogMethod, message:string) => {
+        job.log(message);
+        then(message);
+    }
+}
+
 export default async function (job:SandboxedJob<EcosetJobRequest>) {
-    const result = await processJob(job.data, job.id.toString(), i => job.updateProgress(i));
+    const result = await processJob(job.data, job.id.toString(), i => job.updateProgress(i), logToJobThen(job));
     switch ((result).kind) {
         case "ok":
             await redisStateCache.setState(stateCache, job.id.toString(), JobState.Ready);
