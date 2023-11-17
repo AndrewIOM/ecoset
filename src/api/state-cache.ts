@@ -13,7 +13,6 @@ function create() {
     const redisHost = config.get<string>("cache.host");
     const redisPort = config.get<number>("cache.port");
     const client = redis.createClient({
-        disableOfflineQueue: true,
         socket: {
             port: redisPort,
             host: redisHost },
@@ -25,17 +24,21 @@ function create() {
 
     client.on("error", err => { 
         logger.error("Redis error states: " + err) 
+        throw new Error("Redis says " + err);
     });
+
     return client;
 }
 
 async function setJobState(cache:redis.RedisClientType<any,any,any>, jobId:string, state:JobState) {
-    const result = await cache.set(jobId, state.toString());
+    console.log("Setting job state");
+    const result = await cache.set(redisKey(jobId), state.toString());
     if (result == null) return false;
     return true;
 }
 
 async function getJobState(cache:redis.RedisClientType<any,any,any>, jobId:string) : Promise<JobState> { 
+    console.log("Getting job state");
     if (!cache.exists(jobId)) {
         return JobState.NonExistent;
     }

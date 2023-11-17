@@ -94,7 +94,7 @@ const promiseMap = (inputValues: Node[], mapper:((n:Node) => Promise<ProcessingR
 const processJob = async (job:EcosetJobRequest, jobId:string, updatePercent:UpdatePercent) : Promise<Result<void,string>> => {
 
     logger.info("Starting processing of analysis: " + JSON.stringify(job));
-    redisStateCache.setState(stateCache, jobId, JobState.Processing);
+    await redisStateCache.setState(stateCache, jobId, JobState.Processing);
 
     const cacheDir = tryEstablishCache(jobId.toString());
     if (cacheDir == null) {
@@ -206,16 +206,14 @@ const processJob = async (job:EcosetJobRequest, jobId:string, updatePercent:Upda
     return { kind: "ok", result: undefined };
 }
 
-export default async function (job:SandboxedJob<EcosetJobRequest>, done:any) {
+export default async function (job:SandboxedJob<EcosetJobRequest>) {
     const result = await processJob(job.data, job.id.toString(), i => job.updateProgress(i));
     switch ((result).kind) {
         case "ok":
-            redisStateCache.setState(stateCache, job.id.toString(), JobState.Ready);
-            done();
-            break;
+            await redisStateCache.setState(stateCache, job.id.toString(), JobState.Ready);
+            return null;
         case "failure":
-            redisStateCache.setState(stateCache, job.id.toString(), JobState.Failed);
-            done(new Error(result.message));
-            break;
+            await redisStateCache.setState(stateCache, job.id.toString(), JobState.Failed);
+            throw new Error(result.message);
     }
 }

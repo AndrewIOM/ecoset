@@ -5,6 +5,7 @@ import { queue } from '../queue';
 import { listVariableDtos } from '../registry';
 import * as cache from '../output-cache';
 import { v4 as uuid } from 'uuid';
+import { logger } from '../logger';
 
 @Route('Data')
 export class DataPackageController extends Controller {
@@ -20,7 +21,10 @@ export class DataPackageController extends Controller {
 		public async submit(@Body() jobRequest: EcosetJobRequest): Promise<JobSubmitResponse> {
 			const newId = uuid();
 			let r = await queue.add(newId, jobRequest, { jobId: newId });
-			redisStateCache.setState(stateCache, newId, JobState.Queued);
+			let stateSet = await redisStateCache.setState(stateCache, newId, JobState.Queued);
+			if (!stateSet) {
+				logger.error("Queued state could not be set for job in redis cache");
+			}
 			return { success: true, jobId: newId, message: "Analysis successfully submitted" };
 		}
 
