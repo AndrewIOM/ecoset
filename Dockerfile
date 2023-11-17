@@ -21,10 +21,6 @@ RUN add-apt-repository ppa:ubuntugis/ppa
 RUN apt-get update
 RUN apt-get install --yes gdal-bin python3-gdal
 
-# Setup yarn
-RUN corepack enable
-RUN yarn set version stable
-
 # Setup Directories
 RUN mkdir -p /data
 RUN mkdir -p /output
@@ -34,6 +30,10 @@ RUN mkdir -p /usr/src/app
 ADD ./src /usr/src/app
 
 WORKDIR /usr/src/app
+
+# Setup yarn
+RUN corepack enable
+RUN corepack install
 RUN yarn workspaces focus --production
 RUN yarn install
 
