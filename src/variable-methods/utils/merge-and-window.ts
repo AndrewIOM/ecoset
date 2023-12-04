@@ -208,7 +208,7 @@ export async function run(
         }
     }
     if (resolution) {
-        if (resolution > 1 && Number.isNaN(resolution)) {
+        if (resolution > 1 && !Number.isNaN(resolution)) {
             // TODO Remove resolution / interpolation from here and place in seperate second transformation step
             logger.info("Reducing output size to " + resolution + " maximum pixels");
             const resScaleFactor = (bufferedBounds.LonMax - bufferedBounds.LonMin) / (bufferedBounds.LatMax - bufferedBounds.LatMin);
