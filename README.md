@@ -1,4 +1,4 @@
-# ecoset
+<img alt="ecoset" src="docs/images/ecoset-logo.png" style="max-width:25em">
 
 <a href="https://github.com/AndrewIOM/ecoset/pkgs/container/ecoset-vnext%2Fimage">![GitHub release (with filter)](https://img.shields.io/github/v/release/AndrewIOM/ecoset?label=Container%20registry&color=%2351BB93)</a>
 ![Docker](https://github.com/AndrewIOM/ecoset-vnext/workflows/Docker/badge.svg)
