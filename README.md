@@ -2,6 +2,7 @@
 
 <a href="https://github.com/AndrewIOM/ecoset/pkgs/container/ecoset-vnext%2Fimage">![GitHub release (with filter)](https://img.shields.io/github/v/release/AndrewIOM/ecoset?label=Container%20registry&color=%2351BB93)</a>
 ![Docker](https://github.com/AndrewIOM/ecoset-vnext/workflows/Docker/badge.svg)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10256946.svg)](https://doi.org/10.5281/zenodo.10256946)
 
 A flexible application for serving geospatial datasets.
 
