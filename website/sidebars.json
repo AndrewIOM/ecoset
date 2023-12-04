@@ -1,6 +1,0 @@
-{
-  "docs": {
-    "Quick Start": ["getting-started", "configuration" ],
-    "Variables": ["variables", "custom-methods", "dimensions" ]
-  }
-}
